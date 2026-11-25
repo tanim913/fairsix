@@ -31,6 +31,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --ph: color-mix(in oklab, #eaf3f0 74%, #2fc27d);
     --ground: #0c1a1e;
     --ground-2: #10242a;
     --surface: #152a30;
@@ -49,6 +50,7 @@
   }
 }
 :root[data-theme="dark"] {
+  --ph: color-mix(in oklab, #eaf3f0 74%, #2fc27d);
   --ground: #0c1a1e;
   --ground-2: #10242a;
   --surface: #152a30;
@@ -219,7 +221,7 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
   background: var(--tile);
   font-size: 18px; font-weight: 600;
 }
-.field input::placeholder { color: var(--ink-2); opacity: 1; }
+.field input::placeholder { color: var(--ph, var(--ink-2)); opacity: 1; }
 .field input:focus { border-color: var(--c3); outline: none; }
 #join-code { font-size: 26px; font-weight: 800; letter-spacing: 0.14em; }
 
@@ -236,7 +238,7 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
   font-weight: 800; font-size: 17px;
   transition: border-color 0.15s, background-color 0.15s;
 }
-.seg small { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.seg small { display: block; font-size: 12.5px; font-weight: 600; color: color-mix(in oklab, var(--ink) 88%, var(--tile)); }
 .seg input:checked + span { border-color: var(--ink); background: var(--ink); color: var(--ground); }
 .seg input:checked + span small { color: color-mix(in oklab, var(--ground) 80%, transparent); }
 .seg input:focus-visible + span { outline: 3px solid var(--c3); outline-offset: 3px; }
@@ -432,7 +434,7 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
   display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   border-radius: 16px;
   background: linear-gradient(150deg, #ffffff, #e3ecf6);
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.9), inset 0 -5px 8px rgb(31 69 214 / 0.18), 0 4px 10px rgb(15 27 51 / 0.25);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.9), inset 0 -5px 8px rgb(31 69 214 / 0.18), 0 4px 10px rgb(0 0 0 / 0.25);
 }
 .die i { width: 9px; height: 9px; border-radius: 50%; background: #0f1b33; place-self: center; opacity: 0; transition: opacity 0.12s; }
 .die[data-face="1"] i:nth-child(5),
@@ -603,7 +605,7 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 .skin-glass[data-face="6"] { --pip: var(--c0); }
 
 /* Marbles: every pip is a tiny kancha */
-.skin-marbles { background: linear-gradient(160deg, #ffffff, #eef3f1); box-shadow: inset 0 -5px 8px rgb(15 27 51 / 0.1), 0 5px 12px rgb(0 0 0 / 0.18); }
+.skin-marbles { background: linear-gradient(160deg, #ffffff, #eef3f1); box-shadow: inset 0 -5px 8px rgb(0 0 0 / 0.08), 0 5px 12px rgb(0 0 0 / 0.18); }
 .skin-marbles i { transform: scale(1.35); background: radial-gradient(circle at 34% 30%, #fff 0 18%, transparent 20%), radial-gradient(circle at 50% 56%, var(--mc) 0 55%, color-mix(in oklab, var(--mc) 45%, white) 57%); }
 .skin-marbles i:nth-child(3n + 1) { --mc: #d0263f; }
 .skin-marbles i:nth-child(3n + 2) { --mc: #1f45d6; }
@@ -669,20 +671,23 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 
 /* ---------- phones: one row of compact seats ---------- */
 @media (max-width: 599px) {
-  .game { --board-size: min(calc(100vw - 32px), calc(100dvh - 318px), 640px); gap: 10px; }
+  .game { --board-size: min(calc(100vw - 32px), calc(100dvh - 336px), 640px); gap: 10px; }
   .seats { grid-template-columns: repeat(var(--n, 4), 1fr); gap: 6px; }
   .seat { flex-direction: column; align-items: center; gap: 3px; min-height: 0; padding: 6px 4px 7px; text-align: center; }
   .seat .guti-demo { width: 28px; height: 28px; }
   .seat-text { width: 100%; }
   .seat b { font-size: 13px; }
   .seat small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .seat .homes { display: none; }
+  .seat .homes { display: flex; justify-content: center; align-items: center; gap: 3px; min-height: 14px; }
+  .seat .homes span { width: 6px; height: 6px; border-width: 1.5px; }
+  .seat .you { display: inline; margin-left: 4px; }
+  .seat.mine { background: color-mix(in oklab, var(--c) 12%, var(--surface)); }
   .seat .mini-die { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; padding: 4px; margin: 0; }
   .seat .mini-die i { width: 3.5px; height: 3.5px; }
   .seat .mini-die.skin-kitty::before, .seat .mini-die.skin-kitty::after { display: none; }
 }
 @media (max-width: 599px) and (max-height: 700px) {
-  .game { --board-size: min(calc(100vw - 32px), calc(100dvh - 286px)); }
+  .game { --board-size: min(calc(100vw - 32px), calc(100dvh - 352px)); }
   .die-well { width: 60px; height: 60px; border-radius: 20px; }
   .die { width: 44px; height: 44px; padding: 7px; }
   .die i { width: 7px; height: 7px; }
@@ -711,3 +716,6 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 }
 /* kitty ears sit behind the die face */
 .skin-kitty { isolation: isolate; }
+.dice-pick label { color: color-mix(in oklab, var(--ink) 75%, var(--tile)); }
+.seat .you { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: 0.02em; color: var(--ink); }
+@media (min-width: 600px) { .seat .you { display: none; } }

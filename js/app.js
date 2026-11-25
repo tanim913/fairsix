@@ -464,7 +464,7 @@ function renderGame() {
     const turn = !s.over && p.seat === cur.seat;
     const lr = lastRollOf(s, p.seat);
     const face = rollingSeat === p.seat ? 0 : lr ? lr.die : 0;
-    return `<li class="seat c${p.corner} ${turn ? "turn" : ""} ${present(p) || p.place ? "" : "gone"}">${marble(p.corner)}<span class="seat-text"><b>${esc(nameOf(p))}</b><small>${sub}</small></span><span class="homes" aria-label="${homes} home">${dots}</span>${miniDie(p.dice, face, rollingSeat === p.seat ? "tumble" : "")}${turn ? '<span class="tbar"></span>' : ""}</li>`;
+    return `<li class="seat c${p.corner} ${turn ? "turn" : ""} ${p.seat === room.mySeat ? "mine" : ""} ${present(p) || p.place ? "" : "gone"}">${marble(p.corner)}<span class="seat-text"><b>${esc(nameOf(p))}</b><small>${sub}</small></span><span class="homes" aria-label="${homes} home">${dots}${p.seat === room.mySeat ? '<em class="you">you</em>' : ""}</span>${miniDie(p.dice, face, rollingSeat === p.seat ? "tumble" : "")}${turn ? '<span class="tbar"></span>' : ""}</li>`;
   }).join("");
 
   // turn timer

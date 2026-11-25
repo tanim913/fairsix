@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-zoo.html"
+        ],
+        "createdAt": "2026-11-25T19:11:41.892Z",
+        "reason": "Decision-round sketch of the declined Garden Guide Map world, whose catalog spec fixes cream #F5F1E4; not shipped"
+      }
+    ]
+  }
+}
