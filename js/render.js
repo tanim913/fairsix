@@ -3,7 +3,7 @@
 import {
   TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
-} from "./board.js?v=202611251932";
+} from "./board.js?v=202611251936";
 
 const r2 = (n) => Math.round(n * 1000) / 1000;
 
@@ -64,7 +64,10 @@ export function drawBoard(svg, mode, usedCorners) {
       const ux = (b[0] - a[0]) / Math.SQRT2, uy = (b[1] - a[1]) / Math.SQRT2;
       const h1 = [p2[0] - ux * 0.16 - uy * 0.12, p2[1] - uy * 0.16 + ux * 0.12];
       const h2 = [p2[0] - ux * 0.16 + uy * 0.12, p2[1] - uy * 0.16 - ux * 0.12];
-      s += `<path class="corner-mark" d="M${r2(p1[0])} ${r2(p1[1])} L${r2(p2[0])} ${r2(p2[1])} M${r2(h1[0])} ${r2(h1[1])} L${r2(p2[0])} ${r2(p2[1])} L${r2(h2[0])} ${r2(h2[1])}"/>`;
+      // feathers at the tail end
+      const f1 = [p1[0] - uy * 0.1, p1[1] + ux * 0.1], f2 = [p1[0] + uy * 0.1, p1[1] - ux * 0.1];
+      const g1 = [p1[0] + ux * 0.12, p1[1] + uy * 0.12];
+      s += `<path class="corner-mark" d="M${r2(p1[0])} ${r2(p1[1])} L${r2(p2[0])} ${r2(p2[1])} M${r2(h1[0])} ${r2(h1[1])} L${r2(p2[0])} ${r2(p2[1])} L${r2(h2[0])} ${r2(h2[1])} M${r2(f1[0])} ${r2(f1[1])} L${r2(g1[0])} ${r2(g1[1])} L${r2(f2[0])} ${r2(f2[1])}"/>`;
     }
   }
   s += `<g id="live-layer"></g>`;

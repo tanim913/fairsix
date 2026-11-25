@@ -15,16 +15,16 @@
 //   {a:"leave", s, ts, u}                               player quits
 
 import {
-  BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL,
+  BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL, CORNER_TAILS,
   cornersFor, globalIndex,
-} from "./board.js?v=202611251932";
+} from "./board.js?v=202611251936";
 
 export const TURN_MS = 30000;     // time to roll, and again to move
 export const REVEAL_MS = 4000;    // wait for slow devices before rolling without them
 export const MAX_MISSES = 3;      // missed turns in a row before a player is out
 export const PENDING = Symbol("pending");
 // Bump whenever a rule changes: a game only plays on the version it started with.
-export const RULES_VERSION = 3;
+export const RULES_VERSION = 4;
 
 export const MODES = {
   classic: { label: "Classic", tokensToWin: 4, killToEnter: false, arrows: false },
@@ -94,9 +94,11 @@ export function destination(state, p, t, d) {
     cur = step(cur, open);
     if (cur === null) return null;
   }
-  // Landing exactly on your own arrow's tail flies you into your home lane.
-  if (MODES[state.mode].arrows && cur === ARROW_TAIL && open) {
-    return { pos: LANE0, arrow: true, via: cur };
+  if (MODES[state.mode].arrows) {
+    // Landing exactly on your own colour's curved arrow flies you into your home lane.
+    if (cur === ARROW_TAIL && open) return { pos: LANE0, arrow: true, via: cur };
+    // Landing exactly on a corner arrow moves you one square on, for every colour.
+    if (cur <= PRE_START && CORNER_TAILS.has(globalIndex(p.corner, cur))) return { pos: cur + 1, arrow: true, via: cur };
   }
   return { pos: cur, arrow: false };
 }

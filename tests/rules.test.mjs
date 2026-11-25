@@ -314,3 +314,21 @@ test("two players sit bottom-left and top-right", () => {
   const g = driver(2, "classic");
   assert.deepEqual(g.s.players.map((p) => p.corner), [3, 1]);
 });
+
+test("arrow mode: corner arrows move any colour one square on, with another roll", () => {
+  const g = driver(2, "arrow");
+  // Relative square 4 is a corner-arrow tail for every colour.
+  g.fresh((s) => { s.players[0].tokens = [1, BASE, BASE, BASE]; });
+  g.roll(3);
+  assert.equal(g.s.players[0].tokens[0], 5, "landed on the tail at 4, moved on to 5");
+  assert.equal(g.s.event.arrow, true);
+  assert.equal(g.s.phase, "roll", "and earned another roll");
+  g.fresh((s) => { s.players[0].tokens = [1, BASE, BASE, BASE]; });
+  g.roll(4);
+  assert.equal(g.s.players[0].tokens[0], 5, "passing over the tail is a normal move");
+  assert.equal(g.s.turn, 1);
+  const c = driver(2, "classic");
+  c.fresh((s) => { s.players[0].tokens = [1, BASE, BASE, BASE]; });
+  c.roll(3);
+  assert.equal(c.s.players[0].tokens[0], 4, "no corner arrows in Classic");
+});

@@ -1,14 +1,14 @@
 // Room client: follows a room's log, checks every roll's proof, and does this
 // device's part (revealing its values, rolling, moving, timing out idle players).
-import * as net from "./net.js?v=202611251932";
+import * as net from "./net.js?v=202611251936";
 import {
   newGame, apply, PENDING, current, present, bySeat, legalMoves, poolMoves, TURN_MS, REVEAL_MS, RULES_VERSION,
-} from "./rules.js?v=202611251932";
+} from "./rules.js?v=202611251936";
 
 export const KEEP_MS = 3000; // re-roll window when the roll has at most one move
 import {
   buildChain, ChainVerifier, dieFace, newSeed, rollerIndex, helperIndex, MAX_ROLLS,
-} from "./fair.js?v=202611251932";
+} from "./fair.js?v=202611251936";
 
 const seedKey = (code) => `fairsix:seed:${code}:${net.uid}`;
 

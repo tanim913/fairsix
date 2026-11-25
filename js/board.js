@@ -52,9 +52,11 @@ export const SAFE = new Set([...START, ...STARS]);
 // square two before the colour turns into its home lane (relative 48); landing
 // exactly there flies the guti into the first square of its own home lane.
 export const ARROW_TAIL = 48;
-// The four inner corners carry small arrows that only mark the direction of
-// travel (the squares are already one step apart).
+// The four inner corners carry short arrows on the shared track. Landing exactly
+// on a corner arrow's tail moves any guti one square on to its head and earns
+// another roll (Ludo Star's "token moves ahead 1 step, get an extra dice roll").
 export const CORNER_MARKS = [[[5, 6], [6, 5]], [[8, 5], [9, 6]], [[9, 8], [8, 9]], [[6, 9], [5, 8]]];
+export const CORNER_TAILS = new Set([4, 17, 30, 43]); // global track indices of the tails
 
 export const LANES = [
   [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],

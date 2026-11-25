@@ -361,7 +361,7 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 .board .u0 path { stroke: var(--c0); } .board .u1 path { stroke: var(--c1); } .board .u2 path { stroke: var(--c2); } .board .u3 path { stroke: var(--c3); }
 .board .uarrow .feather { stroke-width: 0.07; }
 .board .uarrow path.halo { stroke: var(--tile); stroke-width: 0.26; }
-.board .corner-mark { fill: none; stroke: var(--ink); stroke-opacity: 0.6; stroke-width: 0.07; stroke-linecap: round; stroke-linejoin: round; }
+.board .corner-mark { fill: none; stroke: var(--ink); stroke-opacity: 0.8; stroke-width: 0.08; stroke-linecap: round; stroke-linejoin: round; }
 .board .unused { opacity: 0.4; }
 .board .live { fill: color-mix(in oklab, var(--live) 26%, transparent); stroke: var(--live); stroke-width: 0.1; animation: live 1.1s var(--ease) infinite alternate; }
 @keyframes live { from { stroke-opacity: 1; } to { stroke-opacity: 0.35; } }

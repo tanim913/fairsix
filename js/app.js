@@ -1,11 +1,11 @@
-import * as net from "./net.js?v=202611251932";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611251932";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611251932";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611251932";
-import { HOME, cornersFor } from "./board.js?v=202611251932";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611251932";
+import * as net from "./net.js?v=202611251936";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611251936";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611251936";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611251936";
+import { HOME, cornersFor } from "./board.js?v=202611251936";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611251936";
 
-export const APP_VERSION = "202611251932";
+export const APP_VERSION = "202611251936";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
