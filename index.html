@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Fairsix: Ludo with fair dice</title>
   <meta name="description" content="Play Ludo with 2 to 4 friends in a private room. Every player's device seals randomness into each roll, so nobody can rig the dice, and anyone can check every roll.">
-  <meta name="referrer" content="no-referrer">
+  <meta name="referrer" content="strict-origin">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#E4EEEA" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0C1A1E" media="(prefers-color-scheme: dark)">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest?v=202611251936">
+  <link rel="manifest" href="manifest.webmanifest?v=202611252221">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=202611251936">
-  <script src="js/theme.js?v=202611251936"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611252221">
+  <script src="js/theme.js?v=202611252221"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -116,6 +116,7 @@
         <div class="board-wrap" id="board-wrap">
           <svg class="board" id="board" viewBox="0 0 15 15" role="img" aria-label="Ludo board"></svg>
           <div class="tokens" id="tokens"></div>
+          <div class="chooser" id="chooser" role="group" aria-label="Choose a die" hidden></div>
         </div>
         <div class="tray" id="tray">
           <button class="die-well" id="die-well" type="button" aria-label="Roll the die">
@@ -207,6 +208,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=202611251936"></script>
+  <script type="module" src="js/app.js?v=202611252221"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 import {
   TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
-} from "./board.js?v=202611251936";
+} from "./board.js?v=202611252221";
 
 const r2 = (n) => Math.round(n * 1000) / 1000;
 
@@ -19,7 +19,7 @@ function star(cx, cy, r) {
 
 const BASE_ORIGIN = [[0, 0], [9, 0], [9, 9], [0, 9]];
 
-export function drawBoard(svg, mode, usedCorners) {
+export function drawBoard(svg, mode, usedCorners, rot = 0) {
   const used = new Set(usedCorners);
   let s = "";
   for (let c = 0; c < 4; c++) {
@@ -71,7 +71,7 @@ export function drawBoard(svg, mode, usedCorners) {
     }
   }
   s += `<g id="live-layer"></g>`;
-  svg.innerHTML = s;
+  svg.innerHTML = `<g transform="rotate(${90 * rot} 7.5 7.5)">${s}</g>`;
 }
 
 export function showLive(svg, cells) {
@@ -133,6 +133,14 @@ export class Tokens {
 
   unit() { return this.wrap.clientWidth / 15; }
 
+  // Each phone turns the board so its own colour sits bottom-left.
+  setRotation(rot) { this.rot = rot; this.layout(false); }
+  view(x, y) {
+    let a = x, b = y;
+    for (let i = 0; i < (this.rot || 0); i++) [a, b] = [15 - b, a];
+    return [a, b];
+  }
+
   ensure(state) {
     const want = new Set();
     for (const p of state.players) {
@@ -183,7 +191,8 @@ export class Tokens {
 
   transformFor({ x, y, s }) {
     const u = this.unit();
-    return `translate3d(${(x * u).toFixed(1)}px, ${(y * u).toFixed(1)}px, 0) scale(${s})`;
+    const [vx, vy] = this.view(x, y);
+    return `translate3d(${(vx * u).toFixed(1)}px, ${(vy * u).toFixed(1)}px, 0) scale(${s})`;
   }
 
   layout(animate) {
@@ -253,9 +262,12 @@ export class Tokens {
     let prev = start;
     cells.forEach(([x, y], i) => {
       const isFly = ev.arrow && i === n - 1;
-      const mx = (prev[0] + x) / 2, my = (prev[1] + y) / 2 - (isFly ? 0.9 : 0.34);
+      const [ax, ay] = this.view(prev[0], prev[1]);
+      const [bx, by] = this.view(x, y);
+      // the lift is always "up" on screen, whatever the board's rotation
+      const mx = (ax + bx) / 2, my = (ay + by) / 2 - (isFly ? 0.9 : 0.34);
       frames.push({ transform: `translate3d(${(mx * u).toFixed(1)}px, ${(my * u).toFixed(1)}px, 0) scale(${isFly ? 1.25 : 1.1}, ${isFly ? 1.25 : 0.94})`, offset: (i + 0.5) / n });
-      frames.push({ transform: `translate3d(${(x * u).toFixed(1)}px, ${(y * u).toFixed(1)}px, 0) scale(1.06, 0.92)`, offset: (i + 1) / n });
+      frames.push({ transform: `translate3d(${(bx * u).toFixed(1)}px, ${(by * u).toFixed(1)}px, 0) scale(1.06, 0.92)`, offset: (i + 1) / n });
       prev = [x, y];
     });
     this.busy.add(key);

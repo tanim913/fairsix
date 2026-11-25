@@ -1,0 +1,27 @@
+name: Clean up old rooms
+
+on:
+  schedule:
+    - cron: "0 21 * * 0"   # every Monday 03:00 in Dhaka (Sunday 21:00 UTC)
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Delete rooms idle for at least this many hours"
+        default: "168"
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Delete idle rooms
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/purge-rooms.mjs --hours "${{ github.event.inputs.hours || '168' }}"

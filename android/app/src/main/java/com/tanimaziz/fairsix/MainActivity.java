@@ -3,6 +3,10 @@ package com.tanimaziz.fairsix;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Build;
+import android.widget.FrameLayout;
+import android.view.WindowInsets;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -29,8 +33,35 @@ public class MainActivity extends Activity {
         // Keep the screen on while the app is open, so this phone keeps sealing rolls.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int ground = night ? 0xFF0C1A1E : 0xFFE4EEEA;
+
+        // The page sits inside the system bars: the frame takes their insets as
+        // padding and paints them in the app's ground colour (Android 15 draws
+        // apps edge to edge, under the status bar, otherwise).
+        FrameLayout frame = new FrameLayout(this);
+        frame.setBackgroundColor(ground);
+        frame.setOnApplyWindowInsetsListener((v, insets) -> {
+            int l, t, r, b;
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets i = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                l = i.left; t = i.top; r = i.right; b = i.bottom;
+            } else {
+                l = insets.getSystemWindowInsetLeft(); t = insets.getSystemWindowInsetTop();
+                r = insets.getSystemWindowInsetRight(); b = insets.getSystemWindowInsetBottom();
+            }
+            v.setPadding(l, t, r, b);
+            return insets;
+        });
+        if (Build.VERSION.SDK_INT >= 23 && !night) {
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    | (Build.VERSION.SDK_INT >= 26 ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0));
+        }
+        getWindow().setStatusBarColor(ground);
+        getWindow().setNavigationBarColor(ground);
+
         web = new WebView(this);
-        web.setBackgroundColor(0xFFE4EEEA);
+        web.setBackgroundColor(ground);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -57,7 +88,8 @@ public class MainActivity extends Activity {
                 if (req.isForMainFrame()) view.loadUrl("file:///android_asset/offline.html");
             }
         });
-        setContentView(web);
+        frame.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(frame);
 
         if (state != null) web.restoreState(state);
         else web.loadUrl(startUrl(getIntent()));

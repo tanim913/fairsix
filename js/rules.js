@@ -17,7 +17,7 @@
 import {
   BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL, CORNER_TAILS,
   cornersFor, globalIndex,
-} from "./board.js?v=202611251936";
+} from "./board.js?v=202611252221";
 
 export const TURN_MS = 30000;     // time to roll, and again to move
 export const REVEAL_MS = 4000;    // wait for slow devices before rolling without them
@@ -38,7 +38,7 @@ export function newGame(start) {
     .slice()
     .sort((a, b) => a.seat - b.seat)
     .map((p, i) => ({
-      seat: p.seat, uid: p.uid, name: p.name, anchor: p.anchor,
+      seat: p.seat, uid: p.uid, name: p.name, anchor: p.anchor, dice: p.dice,
       corner: corners[i],
       tokens: [BASE, BASE, BASE, BASE],
       kills: 0, misses: 0, sixesTotal: 0,

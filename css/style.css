@@ -88,6 +88,7 @@ button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--c3); outline-offset: 3px; border-radius: 12px; }
 input { caret-color: var(--c3); }
 .sprite { position: absolute; }
+[hidden] { display: none !important; }
 svg:not(.board) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .home > *, .lobby > *, .game > *, .panel > *, .field { min-width: 0; }
 * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -759,3 +760,29 @@ button.die-well.can { animation: nudge 1.6s var(--ease) infinite; }
   font-weight: 800; font-size: 15px;
 }
 .reroll-btn svg { width: 18px; height: 18px; }
+/* sheets float above the screen edge with every corner rounded */
+.sheet { width: min(560px, calc(100vw - 16px)); margin: auto auto max(8px, env(safe-area-inset-bottom)); border-radius: var(--r-lg); }
+@media (min-width: 700px) { .sheet { margin: auto; } }
+
+/* tap a guti with several dice: a bubble offers each die */
+.chooser {
+  position: absolute; z-index: 10;
+  display: flex; gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 0.25);
+  transform: translate(-50%, calc(-100% - var(--u, 24px) * 0.6));
+  animation: pop 0.22s var(--ease);
+}
+.chooser.below { transform: translate(-50%, calc(var(--u, 24px) * 0.6)); }
+.chooser button {
+  display: grid; justify-items: center; gap: 2px;
+  min-width: 48px; min-height: 52px; padding: 5px 6px 3px;
+  border: 2px solid var(--live); border-radius: 14px;
+  background: var(--tile); color: var(--ink);
+  font-weight: 900; font-size: 13px;
+}
+.chooser .mini-die { width: 28px; height: 28px; padding: 5px; }
+.chooser .mini-die i { width: 4.5px; height: 4.5px; }
+@keyframes pop { from { opacity: 0; scale: 0.85; } }

@@ -314,9 +314,12 @@ Soft, heavy pills.
 The biggest thing on the phone screen, under the thumb.
 - **Shape:** full pill, 76px tall (60px on short phones), filling the tray beside the die well.
 - **Ready:** filled with the roller's player colour, white sheen on top, glaze shadow, white 26px/900 label ("Roll"); amber takes ink-navy text. It nudges (scale 1.04 then 0.99) every 1.6s to invite the tap; press scales to 0.96.
-- **Re-roll:** same colour fill, label "Re-roll · n left" at 21px.
+- **Roll again:** while a 6 or a bonus is owed and dice are already stacked, the ready pill reads "Roll again".
 - **Waiting / not your turn:** frost-deep fill, ink-slate 18px label, no shadow, never dimmed by opacity ("Sealing 2/3", "Tap a glowing guti", "Ruby's turn", "Game over").
 - **Timer:** a 6px rounded track under the tray fills with the current player's colour and drains linearly over the turn.
+- **Tappable die:** the die well beside the pill is also a roll button; it nudges with the pill when a roll is ready and is inert otherwise.
+- **Dice row:** stacked dice wait in a row under the tray as 48px glass-surface tiles (16px radius) each holding a mini die in the roller's skin. On your move, usable dice are tappable; the picked die takes a 2px live-violet border with a soft violet ring (violet marks only what you can act on); dice that cannot move anything fade to 40%.
+- **Re-roll button:** a 44px ink-outline pill at the right of the dice row with the re-roll icon, "Re-roll 3 · 2 left"; it appears only in the re-roll window after your latest die.
 
 ### Chips
 - **Room pill:** 36px ink-navy pill in the top bar, mint-frost 14px/800 code with +0.06em tracking and a 600-weight mode name at 75% opacity.
@@ -338,7 +341,7 @@ The biggest thing on the phone screen, under the thumb.
 A 60px sticky top bar on the frosted ground: brand bead and Gabarito 22px/900 wordmark at left (the bead alone inside a room on phones), the room pill centred, and icon buttons for sound, rules and theme at right.
 
 ### Sheets and toast
-- **Sheet:** a native dialog on glass-surface. On phones it docks to the bottom of the screen with 28px rounded top corners and rises 40px with a fade over 350ms; from 700px it centres with all corners at 28px. Backdrop is navy at 45%. Sticky head with Title heading and a close icon button; body 24px side padding, prose at ink-slate.
+- **Sheet:** a native dialog on glass-surface with all corners at 28px. On phones it floats 8px above the bottom edge (or the safe area), 16px narrower than the screen, and rises 40px with a fade over 350ms; from 700px it centres. Backdrop is navy at 45%. Sticky head with Title heading and a close icon button; body 24px side padding, prose at ink-slate.
 - **Proof rows:** 12px rounded ground-tinted rows: roll number, a 18px faceless marble, who rolled what, and the 12px beads of every sealing player. Face counts sit in 10px-rounded cells.
 - **Toast:** ink-navy pill at the bottom, slides up from below and fades over 350ms, stays 2.6s.
 
@@ -359,7 +362,7 @@ All skins are cosmetic, share one 3x3 pip grid, and round at 28%. Pips are navy 
 
 ### Board marks
 - **U-arrow (Arrow mode):** one per colour, drawn in that colour with round caps: tail on the square two before the home lane, a 0.5u loop around the arm's end, a chevron head into the lane's first square, and two feather chevrons at the tail. A 0.26u tile-coloured halo under it keeps it readable over tiles. Unused colours dim to 40%.
-- **Corner marks:** short ink diagonal arrows (60% opacity, round caps) at the four inner corners showing direction only.
+- **Corner arrows (Arrow mode):** short ink diagonal arrows (80% opacity, round caps, feather chevron at the tail) across the four inner corners. They work for every colour: landing exactly on the tail hops one square to the head and earns another roll.
 - **Safe squares:** stars are ink outlines at 80%; start squares are filled with the player colour and carry a white ring.
 
 ### Motion and sound

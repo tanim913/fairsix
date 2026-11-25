@@ -1,11 +1,11 @@
-import * as net from "./net.js?v=202611251936";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611251936";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611251936";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611251936";
-import { HOME, cornersFor } from "./board.js?v=202611251936";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611251936";
+import * as net from "./net.js?v=202611252221";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611252221";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611252221";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611252221";
+import { HOME, cornersFor } from "./board.js?v=202611252221";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611252221";
 
-export const APP_VERSION = "202611251936";
+export const APP_VERSION = "202611252221";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -43,7 +43,7 @@ let settingsKey = "";
 let diceKey = "";
 const secrets = new Map();   // code -> secret made on this page load
 let pendingName = "-";
-let selV = null;             // the die the player has picked to move with
+let selV = null;             // a die the player picked to filter by (null: any die)
 
 let myDice = "glass";
 try { myDice = skinOf(localStorage.getItem("fairsix:dice")); } catch { /* default */ }
@@ -349,12 +349,15 @@ $("share-link").addEventListener("click", async () => {
 
 function ensureBoard(s) {
   const used = s.players.map((p) => p.corner);
-  const key = `${s.mode}|${used.join(",")}`;
+  const me = bySeat(s, room.mySeat);
+  const rot = me ? (3 - me.corner + 4) % 4 : 0; // your colour bottom-left
+  const key = `${s.mode}|${used.join(",")}|${rot}`;
   if (key === boardKey) return;
   boardKey = key;
-  drawBoard($("board"), s.mode, used);
+  drawBoard($("board"), s.mode, used, rot);
   $("tokens").innerHTML = "";
   tokens = new Tokens($("tokens"), $("board-wrap"), (seat, t) => onPick(seat, t));
+  tokens.rot = rot;
   tokens.onStep = (i, n, fly) => {
     if (fly) sfx.arrow();
     else sfx.hop(i);
@@ -362,20 +365,60 @@ function ensureBoard(s) {
   };
 }
 
+// Dice that can move this guti right now (respecting a die the player picked).
+function fitsFor(s, p, t) {
+  const pos = p.tokens[t];
+  return room.usableDice().filter((d) => (selV === null || d === selV) && legalMoves(s, p, d).some((x) => p.tokens[x.t] === pos));
+}
+
 function onPick(seat, t) {
   if (!room || seat !== room.mySeat) return;
   const s = room.state;
   const p = bySeat(s, seat);
+  const fits = fitsFor(s, p, t);
+  if (!fits.length) return;
+  if (fits.length === 1) { closeChooser(); moveWith(p, t, fits[0]); return; }
+  sfx.tap();
+  openChooser(p, t, fits);
+}
+
+function moveWith(p, t, v) {
   const pos = p.tokens[t];
-  // Prefer the picked die; otherwise the only die that can move this guti.
-  let v = selV;
-  let m = room.movable(v).find((x) => p.tokens[x.t] === pos);
-  if (!m) {
-    const fits = room.usableDice().filter((d) => legalMoves(s, p, d).some((x) => p.tokens[x.t] === pos));
-    if (fits.length === 1) { v = fits[0]; m = room.movable(v).find((x) => p.tokens[x.t] === pos); }
-  }
+  const m = room.movable(v).find((x) => p.tokens[x.t] === pos);
   if (m) { sfx.tap(); room.move(m.t, v); }
 }
+
+// A little bubble beside the tapped guti offering each die that can move it.
+let chooser = null;
+function openChooser(p, t, fits) {
+  chooser = { seat: p.seat, t, fits, pos: p.tokens[t] };
+  const el = $("chooser");
+  const [x, y] = tokens.view(...tokenCell(p.corner, p.tokens[t], t));
+  const u = $("board-wrap").clientWidth / 15;
+  el.innerHTML = fits.map((v) => `<button type="button" data-v="${v}" aria-label="Move ${v}">${miniDie(p.dice, v)}<span>${v}</span></button>`).join("");
+  el.style.left = `${x * u}px`;
+  el.style.top = `${y * u}px`;
+  el.classList.toggle("below", y < 3);
+  el.hidden = false;
+  schedule();
+}
+function closeChooser() {
+  if (!chooser) return;
+  chooser = null;
+  $("chooser").hidden = true;
+  schedule();
+}
+$("chooser").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b || !chooser || !room?.state) return;
+  const p = bySeat(room.state, chooser.seat);
+  const { t } = chooser;
+  closeChooser();
+  moveWith(p, t, Number(b.dataset.v));
+});
+document.addEventListener("pointerdown", (e) => {
+  if (chooser && !e.target.closest("#chooser") && !e.target.closest(".guti")) closeChooser();
+});
 
 function eventText(s, ev) {
   if (!ev) return "";
@@ -491,16 +534,18 @@ function renderGame() {
 
   // guti and events wait until the die has landed
   const usable = room.usableDice();
-  if (!usable.includes(selV)) selV = usable.length ? Math.max(...usable) : null;
-  const moves = selV ? room.movable(selV) : [];
+  if (selV !== null && !usable.includes(selV)) selV = null;
+  const dice = selV === null ? usable : [selV];
+  const moves = dice.flatMap((v) => room.movable(v).map((m) => ({ ...m, v })));
+  if (chooser && (!myTurn || !usable.length || me?.tokens[chooser.t] !== chooser.pos)) { chooser = null; $("chooser").hidden = true; }
   if (!holding) {
     const movable = new Set();
     const live = [];
     if (me && moves.length) {
-      for (const m of moves) {
-        me.tokens.forEach((pos, t) => { if (pos === me.tokens[m.t]) movable.add(`${me.seat}:${t}`); });
-        live.push(tokenCell(me.corner, m.pos, 0));
-      }
+      for (const m of moves) me.tokens.forEach((pos, t) => { if (pos === me.tokens[m.t]) movable.add(`${me.seat}:${t}`); });
+      // Light up landing squares: for the guti whose chooser is open, or when there is only one die.
+      const shown = chooser ? moves.filter((m) => me.tokens[m.t] === chooser.pos && chooser.fits.includes(m.v)) : dice.length === 1 ? moves : [];
+      for (const m of shown) live.push(tokenCell(me.corner, m.pos, 0));
     }
     tokens.render(s, movable, true);
     showLive($("board"), live);
@@ -533,7 +578,7 @@ function renderGame() {
     else if (st.why) label = "Can't roll";
     else label = `Sealing ${st.ready}/${st.total}`;
   } else if (myTurn && s.choice?.three) label = "Third 6";
-  else if (myTurn && usable.length > 1) label = "Pick a die, then a guti";
+  else if (myTurn && usable.length > 1) label = "Tap a glowing guti";
   else if (myTurn && moves.length) label = "Tap a glowing guti";
   else if (myTurn) label = "…";
   else label = `${nameOf(cur)}'s turn`;
@@ -566,7 +611,7 @@ function renderGame() {
     const left = Math.max(0, Math.ceil((KEEP_MS - (net.serverNow() - s.turnTs)) / 1000));
     status = s.choice.three ? `Third 6. Re-roll, or your turn ends in ${left}` : `You rolled ${s.die}. Keeping it in ${left}…`;
   } else if (myTurn && !holding && s.owed > 0 && s.pool.length) status = `You have ${s.pool.join(" + ")}. Roll again!`;
-  else if (myTurn && !holding && usable.length > 1) status = "Pick a die, then tap a guti";
+  else if (myTurn && !holding && usable.length > 1) status = `You have ${s.pool.join(" + ")}. Tap a guti to move it.`;
   else if (!s.over && myTurn && s.owed > 0 && st.can && !holding) status = "Your roll";
   $("status").textContent = holding ? "" : status;
 
@@ -637,7 +682,9 @@ $("reroll").addEventListener("click", () => { if (room?.canReroll()) { sfx.tap()
 $("pool").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-v]");
   if (!b || b.disabled) return;
-  selV = Number(b.dataset.v);
+  const v = Number(b.dataset.v);
+  selV = selV === v ? null : v;
+  closeChooser();
   sfx.tap();
   schedule();
 });
