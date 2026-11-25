@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fairsix offline</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; place-items: center; background: #e4eeea; color: #0f1b33; font: 600 17px/1.45 system-ui, sans-serif; text-align: center; }
+  @media (prefers-color-scheme: dark) { body { background: #0c1a1e; color: #eaf3f0; } }
+  main { display: grid; gap: 14px; justify-items: center; padding: 24px; }
+  .bead { width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 31% 27%, #fff 0 10%, transparent 11%), radial-gradient(circle at 50% 56%, #1f45d6 0 47%, #8fa2ea 48% 72%, #d2dbf7 73%); box-shadow: inset 0 0 0 2px #16308f; }
+  h1 { margin: 0; font-size: 26px; }
+  p { margin: 0; max-width: 28ch; opacity: 0.85; }
+  button { min-height: 52px; padding: 0 28px; border: 0; border-radius: 999px; background: #0f1b33; color: #e4eeea; font: 800 17px system-ui, sans-serif; }
+  @media (prefers-color-scheme: dark) { button { background: #eaf3f0; color: #0c1a1e; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="bead" aria-hidden="true"></div>
+  <h1>No connection</h1>
+  <p>Fairsix needs the internet to seal rolls with the other players.</p>
+  <button type="button" onclick="window.FairsixAndroid ? FairsixAndroid.retry() : location.reload()">Try again</button>
+</main>
+</body>
+</html>

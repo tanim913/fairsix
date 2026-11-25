@@ -1,0 +1,44 @@
+plugins {
+    id "com.android.application"
+}
+
+// Release signing reads ~/.fairsix-release/key.properties (never committed).
+def keyProps = new Properties()
+def keyFile = new File(System.getProperty("user.home"), ".fairsix-release/key.properties")
+if (keyFile.exists()) keyFile.withInputStream { keyProps.load(it) }
+
+android {
+    namespace "com.tanimaziz.fairsix"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.tanimaziz.fairsix"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (keyFile.exists()) {
+                storeFile new File(keyProps["storeFile"])
+                storePassword keyProps["storePassword"]
+                keyAlias keyProps["keyAlias"]
+                keyPassword keyProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keyFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

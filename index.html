@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fairsix: Ludo with fair dice</title>
+  <meta name="description" content="Play Ludo with 2 to 4 friends in a private room. Every player's device seals randomness into each roll, so nobody can rig the dice, and anyone can check every roll.">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#E4EEEA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0C1A1E" media="(prefers-color-scheme: dark)">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+</head>
+<body data-view="home">
+  <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V7a3 3 0 0 1 3-3h7"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v5a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5"/></symbol>
+    <symbol id="i-seal" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-exit" viewBox="0 0 24 24"><path d="M10 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h3"/><path d="M15 8l4 4-4 4M19 12H9"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 8l4 4 4-6 4 6 4-4-1.5 10h-13z"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+    <symbol id="i-reroll" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4v4.5H15"/></symbol>
+  </svg>
+
+  <header class="bar">
+    <a class="brand" href="#" id="brand" aria-label="Fairsix home"><span class="bead c3" aria-hidden="true"></span><span>Fairsix</span></a>
+    <div class="bar-mid" id="bar-mid"></div>
+    <div class="bar-tools">
+      <button class="icon-btn" id="mute" type="button" aria-label="Sound" aria-pressed="false"><svg class="on"><use href="#i-sound"/></svg><svg class="off"><use href="#i-mute"/></svg></button>
+      <button class="icon-btn" id="open-rules" type="button" aria-label="Rules"><svg><use href="#i-book"/></svg></button>
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch light or dark"><svg class="sun"><use href="#i-sun"/></svg><svg class="moon"><use href="#i-moon"/></svg></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HOME -->
+    <section class="view" id="view-home" aria-labelledby="home-title">
+      <div class="home">
+        <div class="home-intro">
+          <div class="marble-row" aria-hidden="true">
+            <span class="guti-demo c0"><span class="eyes"><i></i><i></i></span></span>
+            <span class="guti-demo c1"><span class="eyes"><i></i><i></i></span></span>
+            <span class="guti-demo c2"><span class="eyes"><i></i><i></i></span></span>
+            <span class="guti-demo c3"><span class="eyes"><i></i><i></i></span></span>
+          </div>
+          <h1 id="home-title">Ludo with dice nobody can rig.</h1>
+          <p class="lede">Every phone in the room seals its own randomness into each roll. No levels, no paid boosts, and everyone gets the same re-rolls. Check every roll yourself.</p>
+        </div>
+
+        <form class="panel" id="create-form" autocomplete="off">
+          <h2>New room</h2>
+          <fieldset class="seg" aria-label="Game mode">
+            <legend class="label">Mode</legend>
+            <label><input type="radio" name="mode" value="classic" checked><span>Classic<small>All four guti home</small></span></label>
+            <label><input type="radio" name="mode" value="arrow"><span>Arrow<small>First guti home wins</small></span></label>
+          </fieldset>
+          <fieldset class="seg seg-n" aria-label="Players">
+            <legend class="label">Players</legend>
+            <label><input type="radio" name="cap" value="2"><span>2</span></label>
+            <label><input type="radio" name="cap" value="3"><span>3</span></label>
+            <label><input type="radio" name="cap" value="4" checked><span>4</span></label>
+          </fieldset>
+          <label class="field"><span class="label">Nickname <em>optional</em></span><input id="create-name" name="name" maxlength="16" placeholder="Your colour's name" enterkeyhint="go"></label>
+          <button class="btn primary" id="create-btn" type="submit">Make a room</button>
+        </form>
+
+        <form class="panel" id="join-form" autocomplete="off">
+          <h2>Join a room</h2>
+          <label class="field"><span class="label">Room code</span><input id="join-code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="000 000" required aria-describedby="join-msg"></label>
+          <label class="field"><span class="label">Nickname <em>optional</em></span><input id="join-name" maxlength="16" placeholder="Your colour's name" enterkeyhint="go"></label>
+          <button class="btn" id="join-btn" type="submit">Join</button>
+          <p class="msg" id="join-msg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="view" id="view-lobby" aria-labelledby="lobby-title">
+      <div class="lobby">
+        <div class="code-card">
+          <h1 id="lobby-title" class="label">Room code</h1>
+          <p class="code" id="lobby-code">000 000</p>
+          <div class="code-actions">
+            <button class="btn small" id="copy-code" type="button"><svg><use href="#i-copy"/></svg><span>Copy code</span></button>
+            <button class="btn small" id="share-link" type="button"><svg><use href="#i-share"/></svg><span>Share link</span></button>
+          </div>
+        </div>
+        <ol class="seat-list" id="seat-list" aria-label="Seats"></ol>
+        <div id="dice-pick-wrap"></div>
+        <div class="lobby-settings" id="lobby-settings"></div>
+        <p class="msg" id="lobby-msg" role="status" aria-live="polite"></p>
+        <div class="lobby-actions">
+          <button class="btn primary" id="start-btn" type="button">Start game</button>
+          <button class="btn ghost" id="lobby-leave" type="button"><svg><use href="#i-exit"/></svg><span>Leave</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME -->
+    <section class="view" id="view-game" aria-label="Game">
+      <div class="game">
+        <ol class="seats" id="seats" aria-label="Players"></ol>
+        <div class="board-wrap" id="board-wrap">
+          <svg class="board" id="board" viewBox="0 0 15 15" role="img" aria-label="Ludo board"></svg>
+          <div class="tokens" id="tokens"></div>
+        </div>
+        <div class="tray" id="tray">
+          <div class="die-well" id="die-well" aria-live="polite">
+            <div class="beads" id="beads" aria-hidden="true"></div>
+            <div class="die" id="die" data-face="0" role="img" aria-label="Die not rolled yet"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="roll" id="roll" type="button" disabled>Roll</button>
+          <div class="timer" id="timer" aria-hidden="true"><div></div></div>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+          <button class="seed-line" id="open-proof" type="button"><svg><use href="#i-seal"/></svg><span id="seed-line">Dice sealed by every player</span><span class="go">Proof</span></button>
+        </div>
+        <section class="log-panel" aria-label="Recent rolls">
+          <h2 class="label">Rolls</h2>
+          <ol class="roll-log" id="roll-log"></ol>
+          <button class="btn ghost small" id="game-leave" type="button"><svg><use href="#i-exit"/></svg><span>Leave game</span></button>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="sheet" id="result" aria-labelledby="result-title">
+    <div class="sheet-body result">
+      <div class="result-marble" id="result-marble" aria-hidden="true"></div>
+      <h2 id="result-title">Game over</h2>
+      <ol class="places" id="places"></ol>
+      <p class="fine" id="result-proof"></p>
+      <div class="result-actions">
+        <button class="btn primary" id="again" type="button">New room</button>
+        <button class="btn" id="result-proof-btn" type="button"><svg><use href="#i-seal"/></svg><span>See the proof</span></button>
+        <button class="btn ghost" id="result-close" type="button">Look at the board</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="proof" aria-labelledby="proof-title">
+    <div class="sheet-head"><h2 id="proof-title">Proof of fair dice</h2><button class="icon-btn" data-close type="button" aria-label="Close"><svg><use href="#i-close"/></svg></button></div>
+    <div class="sheet-body">
+      <p>Before the game, each device picked a secret and published only its <b>seal</b> (the end of a hash chain). Each roll mixes the roller's next secret with every other player's, so no one, not even this website, could choose or predict a face. Each value is checked against its seal before it counts.</p>
+      <div class="verify-row"><button class="btn" id="verify-all" type="button"><svg><use href="#i-check"/></svg><span>Recheck every roll</span></button><span class="msg" id="verify-msg" role="status" aria-live="polite"></span></div>
+      <h3>Faces rolled</h3>
+      <div class="faces" id="faces"></div>
+      <h3>Every roll</h3>
+      <ol class="proof-list" id="proof-list"></ol>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="rules" aria-labelledby="rules-title">
+    <div class="sheet-head"><h2 id="rules-title">How to play</h2><button class="icon-btn" data-close type="button" aria-label="Close"><svg><use href="#i-close"/></svg></button></div>
+    <div class="sheet-body rules">
+      <h3>Classic</h3>
+      <ul>
+        <li>Roll a <b>6</b> to bring a guti out of your base. A 6 also gives you another roll.</li>
+        <li>A third 6 in a row ends your turn without moving.</li>
+        <li>Land on a lone opponent guti to send it back to base and roll again.</li>
+        <li>Start squares and star squares are safe. Two guti of one colour on a square protect each other, but anyone can pass or share the square.</li>
+        <li>Go round the board and up your coloured lane. You need the exact number to reach home, and reaching home gives another roll.</li>
+        <li>The first player with all four guti home wins. Everyone else plays on for the other places.</li>
+      </ul>
+      <h3>Arrow</h3>
+      <ul>
+        <li>The first player to bring <b>one</b> guti home wins.</li>
+        <li>Your home lane stays locked until you have captured at least one opponent guti. Until then your guti go round again.</li>
+        <li>Land exactly on the tail of an arrow to fly to its head, and roll again.</li>
+        <li>All other Classic rules apply.</li>
+      </ul>
+      <h3>Re-rolls</h3>
+      <ul>
+        <li>The host sets how many re-rolls each player gets: off, 1, 3 or 5. Everyone gets the same number, and nobody can earn or buy more.</li>
+        <li>Right after you roll, tap <b>Re-roll</b> to throw away that roll and roll again. A re-roll is a new sealed roll, exactly as fair as any other.</li>
+        <li>With one possible move or none, your roll is kept after 3 seconds. With more, pick a guti or re-roll.</li>
+        <li>Re-rolled throws still show in the proof, marked as re-rolled.</li>
+      </ul>
+      <h3>Turns</h3>
+      <ul>
+        <li>You have 30 seconds to roll and 30 to move. If time runs out, your turn is skipped, or your best move is played for you.</li>
+        <li>Miss three turns in a row and you are out.</li>
+      </ul>
+      <h3>Why the dice are fair</h3>
+      <p>Nothing about you (your history, your wins, your device, your chosen die) goes into a roll. Each roll needs a secret from you and from the other players, all sealed before the first roll. If a phone goes quiet, the roll waits 4 seconds and then goes ahead with the rest. Open <b>Proof</b> during a game to recheck every roll.</p>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
