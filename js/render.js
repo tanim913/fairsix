@@ -1,7 +1,7 @@
 // Board drawing (SVG) and guti (HTML marbles over the board). Guti only ever
 // animate `transform`, so movement stays on the compositor and does not lag.
 import {
-  TRACK, LANES, START, STARS, ARROWS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
+  TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
 } from "./board.js";
 
@@ -47,15 +47,24 @@ export function drawBoard(svg, mode, usedCorners) {
   s += `<path class="petal petal2" d="M8.68 6.42 L8.68 8.58 L7.68 7.5Z"/>`;
   s += `<path class="petal petal3" d="M6.42 8.68 L8.58 8.68 L7.5 7.68Z"/>`;
   if (mode === "arrow") {
-    for (const a of ARROWS) {
-      const [tx, ty] = TRACK[a.tail];
-      const [hx, hy] = TRACK[a.head];
-      const x1 = tx + 0.5, y1 = ty + 0.5, x2 = hx + 0.5, y2 = hy + 0.5;
-      const dx = Math.sign(x2 - x1), dy = Math.sign(y2 - y1);
-      const ex = x2 - dx * 0.18, ey = y2 - dy * 0.18;
-      const px = -dy * 0.28, py = dx * 0.28;
-      s += `<circle class="arrow-tail" cx="${x1}" cy="${y1}" r="0.3"/>`;
-      s += `<path class="arrow" d="M${x1 + dx * 0.3} ${y1 + dy * 0.3} L${ex} ${ey} M${ex - dx * 0.3 + px} ${ey - dy * 0.3 + py} L${ex} ${ey} L${ex - dx * 0.3 - px} ${ey - dy * 0.3 - py}"/>`;
+    // Each colour's U-arrow, drawn for the top-left colour and rotated into place:
+    // tail on (1,8), loop round the arm's end, head into the lane's first square.
+    for (let c = 0; c < 4; c++) {
+      const dim = used.has(c) ? "" : " unused";
+      s += `<g class="uarrow u${c}${dim}" transform="rotate(${90 * c} 7.5 7.5)">`
+        + `<path class="halo" d="M1.62 8.5 H0.95 A0.5 0.5 0 0 1 0.95 7.5 H1.6 M1.36 7.27 L1.64 7.5 L1.36 7.73"/>`
+        + `<path d="M1.62 8.5 H0.95 A0.5 0.5 0 0 1 0.95 7.5 H1.6"/>`
+        + `<path d="M1.36 7.27 L1.64 7.5 L1.36 7.73"/>`
+        + `<path class="feather" d="M1.86 8.33 L1.68 8.5 L1.86 8.67 M2.02 8.33 L1.84 8.5 L2.02 8.67"/></g>`;
+    }
+    for (const [[ax, ay], [bx, by]] of CORNER_MARKS) {
+      const a = [ax + 0.5, ay + 0.5], b = [bx + 0.5, by + 0.5];
+      const p1 = [a[0] + (b[0] - a[0]) * 0.28, a[1] + (b[1] - a[1]) * 0.28];
+      const p2 = [a[0] + (b[0] - a[0]) * 0.72, a[1] + (b[1] - a[1]) * 0.72];
+      const ux = (b[0] - a[0]) / Math.SQRT2, uy = (b[1] - a[1]) / Math.SQRT2;
+      const h1 = [p2[0] - ux * 0.16 - uy * 0.12, p2[1] - uy * 0.16 + ux * 0.12];
+      const h2 = [p2[0] - ux * 0.16 + uy * 0.12, p2[1] - uy * 0.16 - ux * 0.12];
+      s += `<path class="corner-mark" d="M${r2(p1[0])} ${r2(p1[1])} L${r2(p2[0])} ${r2(p2[1])} M${r2(h1[0])} ${r2(h1[1])} L${r2(p2[0])} ${r2(p2[1])} L${r2(h2[0])} ${r2(h2[1])}"/>`;
     }
   }
   s += `<g id="live-layer"></g>`;

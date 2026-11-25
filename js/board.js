@@ -48,10 +48,13 @@ export const START = [0, 13, 26, 39];
 export const STARS = [8, 21, 34, 47];
 export const SAFE = new Set([...START, ...STARS]);
 
-// Arrow mode: one arrow per arm on its outward lane. Landing exactly on a tail
-// flies the token to the head (5 squares on) and gives another roll.
-export const ARROWS = [0, 1, 2, 3].map((c) => ({ tail: 5 + 13 * c, head: 10 + 13 * c }));
-export const ARROW_BY_TAIL = new Map(ARROWS.map((a) => [a.tail, a.head]));
+// Arrow mode: each colour has one U-shaped arrow. Its tail is the main-track
+// square two before the colour turns into its home lane (relative 48); landing
+// exactly there flies the guti into the first square of its own home lane.
+export const ARROW_TAIL = 48;
+// The four inner corners carry small arrows that only mark the direction of
+// travel (the squares are already one step apart).
+export const CORNER_MARKS = [[[5, 6], [6, 5]], [[8, 5], [9, 6]], [[9, 8], [8, 9]], [[6, 9], [5, 8]]];
 
 export const LANES = [
   [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],

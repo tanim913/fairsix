@@ -7,7 +7,7 @@ Ludo for 2 to 4 friends in a private room, with dice nobody can rig. Make a room
 ## Modes
 
 - **Classic:** a 6 brings a guti out and gives another roll, a third 6 in a row ends the turn, captures and reaching home give another roll, start and star squares are safe, two guti of one colour protect each other, exact count to get home. First with all four home wins; the rest play on for places.
-- **Arrow:** first guti home wins. Your home lane stays locked until you capture an opponent. Land exactly on an arrow's tail to fly to its head and roll again.
+- **Arrow:** Classic rules plus one U-shaped arrow per colour. Its tail is two squares before your home lane; land exactly on it to fly straight into your lane and roll again. Passing over it does nothing. All four guti home to win.
 - **Re-rolls:** the host picks 0, 1, 3 or 5 per player. Everyone gets the same number; a re-roll is a new sealed roll and the discarded one stays in the proof.
 
 ## How the dice stay fair

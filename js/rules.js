@@ -15,7 +15,7 @@
 //   {a:"leave", s, ts, u}                               player quits
 
 import {
-  BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_BY_TAIL,
+  BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL,
   cornersFor, globalIndex,
 } from "./board.js";
 
@@ -26,7 +26,7 @@ export const PENDING = Symbol("pending");
 
 export const MODES = {
   classic: { label: "Classic", tokensToWin: 4, killToEnter: false, arrows: false },
-  arrow: { label: "Arrow", tokensToWin: 1, killToEnter: true, arrows: true },
+  arrow: { label: "Arrow", tokensToWin: 4, killToEnter: false, arrows: true },
 };
 
 export function newGame(start) {
@@ -91,12 +91,9 @@ export function destination(state, p, t, d) {
     cur = step(cur, open);
     if (cur === null) return null;
   }
-  if (MODES[state.mode].arrows && cur <= PRE_START) {
-    const g = globalIndex(p.corner, cur);
-    if (ARROW_BY_TAIL.has(g)) {
-      const head = ARROW_BY_TAIL.get(g);
-      return { pos: cur + (head - g + 52) % 52, arrow: true, via: cur };
-    }
+  // Landing exactly on your own arrow's tail flies you into your home lane.
+  if (MODES[state.mode].arrows && cur === ARROW_TAIL && open) {
+    return { pos: LANE0, arrow: true, via: cur };
   }
   return { pos: cur, arrow: false };
 }

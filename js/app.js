@@ -284,7 +284,7 @@ function renderLobby() {
       $("lobby-settings").innerHTML = `
         <fieldset class="seg" aria-label="Game mode"><legend class="label">Mode</legend>
           <label><input type="radio" name="lmode" value="classic" ${m.mode === "classic" ? "checked" : ""}><span>Classic<small>All four guti home</small></span></label>
-          <label><input type="radio" name="lmode" value="arrow" ${m.mode === "arrow" ? "checked" : ""}><span>Arrow<small>First guti home wins</small></span></label>
+          <label><input type="radio" name="lmode" value="arrow" ${m.mode === "arrow" ? "checked" : ""}><span>Arrow<small>Shortcut arrows home</small></span></label>
         </fieldset>
         <fieldset class="seg seg-n" aria-label="Players"><legend class="label">Players</legend>
           ${[2, 3, 4].map((n) => `<label><input type="radio" name="lcap" value="${n}" ${m.cap === n ? "checked" : ""} ${n < minCap ? "disabled" : ""}><span>${n}</span></label>`).join("")}

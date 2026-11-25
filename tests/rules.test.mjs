@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { newGame, apply, replay, legalMoves, destination, PENDING, TURN_MS, REVEAL_MS, current } from "../js/rules.js";
-import { BASE, HOME, LANE0, globalIndex, TRACK, ARROWS } from "../js/board.js";
+import { BASE, HOME, LANE0, globalIndex, TRACK, ARROW_TAIL } from "../js/board.js";
 
 const players = (n) => Array.from({ length: n }, (_, i) => ({ seat: i, uid: `u${i}`, name: `P${i}`, anchor: "0".repeat(64) }));
 const start = (n = 2, mode = "classic", rerolls = 0) => ({ a: "start", mode, code: "123456", players: players(n), rerolls, ts: 0, u: "u0" });
@@ -114,28 +114,42 @@ test("classic keeps playing for places with 3 players", () => {
   assert.equal(g.s.turn, 1);
 });
 
-test("arrow mode: home lane locked until a capture, arrows fly with an extra roll", () => {
+test("arrow mode: landing exactly on your arrow tail flies into your home lane, with another roll", () => {
   const g = driver(2, "arrow", []);
-  g.set((s) => { s.players[0].tokens = [48, BASE, BASE, BASE]; });
-  g.roll(4); // 48 -> 49 -> 50 -> 51 -> 0 (locked, goes round)
-  assert.equal(g.s.players[0].tokens[0], 0);
-  g.set((s) => { s.turn = 0; s.phase = "roll"; s.players[0].tokens = [48, BASE, BASE, BASE]; s.players[0].kills = 1; });
-  g.roll(4);
-  assert.equal(g.s.players[0].tokens[0], LANE0 + 1, "after a capture the lane opens");
-  // arrow: corner 0 relative 5 is global 5, the first arrow tail
-  assert.equal(ARROWS[0].tail, 5);
-  g.set((s) => { s.turn = 0; s.phase = "roll"; s.players[0].tokens = [2, BASE, BASE, BASE]; });
+  assert.equal(ARROW_TAIL, 48);
+  assert.deepEqual(TRACK[globalIndex(0, ARROW_TAIL)], [1, 8], "top-left colour's tail is (1,8)");
+  assert.deepEqual(TRACK[globalIndex(1, ARROW_TAIL)], [6, 1], "top-right colour's tail is (6,1)");
+  g.set((s) => { s.players[0].tokens = [45, BASE, BASE, BASE]; });
   g.roll(3);
-  assert.equal(g.s.players[0].tokens[0], 10, "flew from tail 5 to head 10");
+  assert.equal(g.s.players[0].tokens[0], LANE0, "flew from 48 into the lane");
+  assert.equal(g.s.event.arrow, true);
   assert.equal(g.s.turn, 0, "arrow gives another roll");
+  g.set((s) => { s.players[0].tokens = [45, BASE, BASE, BASE]; s.phase = "roll"; });
+  g.roll(4);
+  assert.equal(g.s.players[0].tokens[0], 49, "passing over the tail does nothing");
+  assert.equal(g.s.turn, 1);
 });
 
-test("arrow mode: first token home wins", () => {
-  const g = driver(4, "arrow", []);
-  g.set((s) => { s.players[0].tokens = [LANE0 + 4, BASE, BASE, BASE]; s.players[0].kills = 1; });
-  g.roll(1);
-  assert.ok(g.s.over);
-  assert.equal(g.s.winner, 0);
+test("arrow mode: no capture needed for the lane, all four home to win", () => {
+  const g = driver(2, "arrow", []);
+  g.set((s) => { s.players[0].tokens = [48, BASE, BASE, BASE]; });
+  g.roll(3);
+  assert.equal(g.s.players[0].tokens[0], LANE0, "lane open without a capture (48 -> 49 -> 50 -> lane)");
+  const h = driver(2, "arrow", []);
+  h.set((s) => { s.players[0].tokens = [LANE0 + 4, BASE, BASE, BASE]; });
+  h.roll(1);
+  assert.ok(!h.s.over, "one guti home is not a win in Arrow");
+  h.set((s) => { s.turn = 0; s.phase = "roll"; s.players[0].tokens = [LANE0 + 4, HOME, HOME, HOME]; });
+  h.roll(1);
+  assert.ok(h.s.over);
+  assert.equal(h.s.winner, 0);
+});
+
+test("classic has no arrows", () => {
+  const g = driver(2, "classic", []);
+  g.set((s) => { s.players[0].tokens = [45, BASE, BASE, BASE]; });
+  g.roll(3);
+  assert.equal(g.s.players[0].tokens[0], 48);
 });
 
 test("wrong player, wrong k, early exclusion and unknown dice are rejected", () => {
