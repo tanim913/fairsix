@@ -6,7 +6,7 @@ Ludo for 2 to 4 friends in a private room, with dice nobody can rig. Make a room
 
 ## Modes
 
-- **Classic:** a 6 brings a guti out and gives another roll, a third 6 in a row ends the turn, captures and reaching home give another roll, start and star squares are safe, two guti of one colour protect each other, exact count to get home. First with all four home wins; the rest play on for places.
+- **Classic:** a 6 brings a guti out. Every 6, capture, guti home or arrow earns another roll, and owed rolls come first: dice stack up (6 + 6 + 3) and then the player picks a die and a guti until the dice are used. A third 6 in a row cancels the turn. Two players sit bottom-left and top-right. Other rules: start and star squares are safe, two guti of one colour protect each other, exact count to get home. First with all four home wins; the rest play on for places.
 - **Arrow:** Classic rules plus one U-shaped arrow per colour. Its tail is two squares before your home lane; land exactly on it to fly straight into your lane and roll again. Passing over it does nothing. All four guti home to win.
 - **Re-rolls:** the host picks 0, 1, 3 or 5 per player. Everyone gets the same number; a re-roll is a new sealed roll and the discarded one stays in the proof.
 
@@ -40,5 +40,7 @@ Deploy database rules: `npx firebase-tools deploy --only database --project fair
 Rebuild the vendored SDK: `npm i firebase esbuild && npx esbuild vendor/entry.js --bundle --minify --format=esm --target=es2020 --outfile=vendor/firebase.js`
 
 Build the APK (needs JDK 17+ and the Android SDK): `cd android && ./gradlew assembleRelease`. Release signing reads `~/.fairsix-release/key.properties`, which is not in the repo.
+
+Before committing site changes, run `node scripts/stamp.mjs`: it puts one version stamp on every file the page loads and writes `version.json`, so browsers never mix old and new modules. Each game records `RULES_VERSION` (js/rules.js) and phones on a different version refuse to play it; bump it whenever a rule changes.
 
 Rooms older than 12 hours can be overwritten by a new room with the same code; old rooms can be purged from the Firebase console.

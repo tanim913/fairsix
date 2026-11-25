@@ -3,7 +3,7 @@
 import {
   TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
-} from "./board.js";
+} from "./board.js?v=202611251932";
 
 const r2 = (n) => Math.round(n * 1000) / 1000;
 
@@ -101,6 +101,19 @@ export function movePath(corner, from, to, die, via, arrow) {
 }
 
 const STEP_MS = 150;
+
+// The moves an entry made, each with its start time in ms, played one after another.
+export function moveChain(state) {
+  const evs = state.moves?.length ? state.moves : [];
+  let at = 0;
+  return evs.map((ev) => {
+    const p = state.players.find((q) => q.seat === ev.seat);
+    const n = p ? movePath(p.corner, ev.from, ev.to, ev.die, ev.via, ev.arrow).length : 1;
+    const item = { ev, at, hopMs: STEP_MS * n + (ev.arrow ? 260 : 0) };
+    at += item.hopMs + 140;
+    return item;
+  });
+}
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export class Tokens {
@@ -188,8 +201,8 @@ export class Tokens {
   render(state, movable, mySeatCanMove) {
     this.ensure(state);
     const fresh = this.state === null;
-    const ev = state.event;
-    const animateMove = !fresh && ev && ev.type === "move" && state.seq === this.lastSeq + 1 && !reduce();
+    const chain = moveChain(state);
+    const animateMove = !fresh && chain.length > 0 && state.seq === this.lastSeq + 1 && !reduce();
     this.state = state;
     this.lastSeq = state.seq;
 
@@ -202,11 +215,28 @@ export class Tokens {
       el.setAttribute("aria-label", `${p?.label || "Guti"} ${t + 1}${can && mySeatCanMove ? ", tap to move" : ""}`);
     }
 
-    if (animateMove) this.playMove(state, ev);
+    if (animateMove) {
+      // Hold every guti in the chain where it started, then play the moves in order.
+      const lastFor = new Map();
+      chain.forEach(({ ev }, i) => lastFor.set(`${ev.seat}:${ev.t}`, i));
+      const seen = new Set();
+      for (const { ev } of chain) {
+        const key = `${ev.seat}:${ev.t}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const p = state.players.find((q) => q.seat === ev.seat);
+        const el = this.els.get(key);
+        if (!p || !el) continue;
+        this.busy.add(key);
+        const [x, y] = tokenCell(p.corner, ev.from, ev.t);
+        el.style.transform = this.transformFor({ x, y, s: 1 });
+      }
+      chain.forEach(({ ev, at }, i) => setTimeout(() => this.playMove(state, ev, lastFor.get(`${ev.seat}:${ev.t}`) === i), at));
+    }
     this.layout(!fresh);
   }
 
-  playMove(state, ev) {
+  playMove(state, ev, last = true) {
     const p = state.players.find((q) => q.seat === ev.seat);
     if (!p) return;
     const key = `${ev.seat}:${ev.t}`;
@@ -227,15 +257,15 @@ export class Tokens {
     });
     this.busy.add(key);
     el.classList.add("moving");
-    const final = this.targets(state).get(key);
+    let final = this.targets(state).get(key);
+    if (!last) { const [x, y] = tokenCell(p.corner, ev.to, ev.t); final = { x, y, s: 1 }; }
     if (final) el.style.transform = this.transformFor(final);
     const total = STEP_MS * n + (ev.arrow ? 260 : 0);
     const anim = el.animate(frames, { duration: total, easing: "linear" });
     if (this.onStep) for (let i = 0; i < n; i++) setTimeout(() => this.onStep(i, n, ev.arrow && i === n - 1), (total * (i + 1)) / n - 20);
     const done = () => {
-      this.busy.delete(key);
       el.classList.remove("moving");
-      this.layout(false);
+      if (last) { this.busy.delete(key); this.layout(false); }
       for (const c of ev.caps || []) this.playCapture(c, ev);
     };
     anim.onfinish = done;

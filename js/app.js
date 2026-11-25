@@ -1,10 +1,11 @@
-import * as net from "./net.js";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js";
-import { drawBoard, showLive, Tokens, tokenCell } from "./render.js";
-import { current, present, bySeat, MODES, TURN_MS } from "./rules.js";
-import { HOME, cornersFor } from "./board.js";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js";
+import * as net from "./net.js?v=202611251932";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611251932";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611251932";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611251932";
+import { HOME, cornersFor } from "./board.js?v=202611251932";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611251932";
 
+export const APP_VERSION = "202611251932";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -42,6 +43,7 @@ let settingsKey = "";
 let diceKey = "";
 const secrets = new Map();   // code -> secret made on this page load
 let pendingName = "-";
+let selV = null;             // the die the player has picked to move with
 
 let myDice = "glass";
 try { myDice = skinOf(localStorage.getItem("fairsix:dice")); } catch { /* default */ }
@@ -317,7 +319,7 @@ $("start-btn").addEventListener("click", async () => {
   if (players.length < 2) return;
   $("start-btn").disabled = true;
   try {
-    await net.startGame(room.code, { a: "start", mode: room.meta.mode, code: room.code, rerolls: room.meta.rerolls ?? 0, players });
+    await net.startGame(room.code, { a: "start", ver: RULES_VERSION, mode: room.meta.mode, code: room.code, rerolls: room.meta.rerolls ?? 0, players });
   } catch {
     toast("Could not start. Someone may have just joined or left.");
     $("start-btn").disabled = false;
@@ -364,17 +366,24 @@ function onPick(seat, t) {
   if (!room || seat !== room.mySeat) return;
   const s = room.state;
   const p = bySeat(s, seat);
-  const m = room.movable().find((x) => p.tokens[x.t] === p.tokens[t]);
-  if (m) { sfx.tap(); room.move(m.t); }
+  const pos = p.tokens[t];
+  // Prefer the picked die; otherwise the only die that can move this guti.
+  let v = selV;
+  let m = room.movable(v).find((x) => p.tokens[x.t] === pos);
+  if (!m) {
+    const fits = room.usableDice().filter((d) => legalMoves(s, p, d).some((x) => p.tokens[x.t] === pos));
+    if (fits.length === 1) { v = fits[0]; m = room.movable(v).find((x) => p.tokens[x.t] === pos); }
+  }
+  if (m) { sfx.tap(); room.move(m.t, v); }
 }
 
 function eventText(s, ev) {
   if (!ev) return "";
   const who = (seat) => { const p = bySeat(s, seat); return p ? nameOf(p) : "Someone"; };
   switch (ev.type) {
-    case "rolled": return `${who(ev.seat)} rolled ${ev.die}`;
+    case "rolled": return `${who(ev.seat)} rolled ${ev.die}${ev.again ? ". Roll again!" : ""}`;
     case "reroll": return `${who(ev.seat)} re-rolled a ${ev.die}`;
-    case "nomove": return `${who(ev.seat)} rolled ${ev.die}. No move.`;
+    case "nomove": return `${who(ev.seat)} rolled ${(ev.dice || [ev.die]).join(" + ")}. No move.`;
     case "three6": return `${who(ev.seat)} rolled a third 6. Turn over.`;
     case "timeout": return `${who(ev.seat)} ran out of time.`;
     case "out": return `${who(ev.seat)} missed three turns and is out.`;
@@ -390,22 +399,18 @@ function eventText(s, ev) {
   }
 }
 
-// Sounds for an event, timed after the hop animation where it matters.
+// Sounds for an entry: each move in a chain sounds when its hop lands.
 function eventSound(s, ev) {
   if (!ev) return;
   const me = room.mySeat;
-  const hopMs = ev.type === "move" ? 150 * Math.max(1, Math.min(ev.die || 1, 6)) + 40 : 0;
-  switch (ev.type) {
-    case "move":
-      if (ev.caps?.length) setTimeout(() => (ev.caps.some((c) => c.seat === me) ? sfx.captured() : sfx.capture()), hopMs);
-      else if (ev.home && !ev.finished) setTimeout(() => sfx.home(), hopMs);
-      if (ev.finished) setTimeout(() => sfx.home(), hopMs);
-      break;
-    case "nomove": sfx.nomove(); break;
-    case "three6": sfx.three6(); break;
-    case "reroll": sfx.tap(); break;
-    default: break;
+  for (const { ev: m, at, hopMs } of moveChain(s)) {
+    const t = at + hopMs;
+    if (m.caps?.length) setTimeout(() => (m.caps.some((c) => c.seat === me) ? sfx.captured() : sfx.capture()), t);
+    else if (m.home || m.finished) setTimeout(() => sfx.home(), t);
   }
+  if (ev.type === "nomove") sfx.nomove();
+  else if (ev.type === "three6") sfx.three6();
+  else if (ev.type === "reroll") sfx.tap();
 }
 
 function animateBar(el, turnTs, key) {
@@ -456,7 +461,7 @@ function renderGame() {
     if (p.place) sub = ordinal(p.place);
     else if (p.left) sub = "Left";
     else if (p.out) sub = "Out";
-    else if (!s.over && p.seat === cur.seat) sub = p.seat === room.mySeat ? "Your turn" : s.phase === "move" ? `Moving a ${s.die}` : "Rolling";
+    else if (!s.over && p.seat === cur.seat) sub = p.seat === room.mySeat ? "Your turn" : s.owed > 0 ? "Rolling" : "Moving";
     else if (!room.online[p.uid]) sub = "Away";
     else sub = p.seat === room.mySeat ? "You" : "Waiting";
     if (rr && !p.place && present(p)) sub += ` · ${p.rerolls} re-roll${p.rerolls === 1 ? "" : "s"}`;
@@ -485,7 +490,9 @@ function renderGame() {
   if (!holding) $("die").classList.toggle("tumble", (room.busy && myTurn && s.phase === "roll") || room.pending);
 
   // guti and events wait until the die has landed
-  const moves = room.movable();
+  const usable = room.usableDice();
+  if (!usable.includes(selV)) selV = usable.length ? Math.max(...usable) : null;
+  const moves = selV ? room.movable(selV) : [];
   if (!holding) {
     const movable = new Set();
     const live = [];
@@ -510,43 +517,57 @@ function renderGame() {
     }
   }
 
-  // roll / re-roll button
+  // roll button, tappable die, dice pool, re-roll
   const roll = $("roll");
   roll.className = "roll";
   const st = room.rollStatus();
-  const canRe = room.canReroll();
   let label;
-  let enabled = st.can;
   if (s.over) label = "Game over";
   else if (!me) label = "Watching";
   else if (room.problem) label = "Can't play";
-  else if (myTurn && s.phase === "roll") {
+  else if (myTurn && s.owed > 0 && !s.choice?.three) {
     roll.classList.add(`c${me.corner}`);
     roll.style.setProperty("--c", `var(--c${me.corner})`);
-    if (st.can) { label = "Roll"; roll.classList.add("ready"); }
+    if (st.can) { label = s.pool.length ? "Roll again" : "Roll"; roll.classList.add("ready"); }
     else if (room.busy) label = "Rolling…";
     else if (st.why) label = "Can't roll";
     else label = `Sealing ${st.ready}/${st.total}`;
-  } else if (myTurn && s.phase === "move" && canRe && !holding) {
-    roll.classList.add(`c${me.corner}`, "reroll");
-    roll.style.setProperty("--c", `var(--c${me.corner})`);
-    label = `Re-roll · ${me.rerolls} left`;
-    enabled = true;
-  } else if (myTurn && s.phase === "move") label = moves.length ? "Tap a glowing guti" : "…";
+  } else if (myTurn && s.choice?.three) label = "Third 6";
+  else if (myTurn && usable.length > 1) label = "Pick a die, then a guti";
+  else if (myTurn && moves.length) label = "Tap a glowing guti";
+  else if (myTurn) label = "…";
   else label = `${nameOf(cur)}'s turn`;
   roll.textContent = label;
-  roll.disabled = !enabled;
+  roll.disabled = !st.can;
+  const well = $("die-well");
+  well.disabled = !st.can;
+  well.classList.toggle("can", st.can);
+  well.setAttribute("aria-label", st.can ? "Roll the die" : "Die");
+
+  const showPool = !s.over && s.pool.length > 0 && !holding;
+  $("pool-row").hidden = !showPool && !room.canReroll();
+  const mine = myTurn && !s.owed;
+  let picked = false;
+  $("pool").innerHTML = showPool ? s.pool.map((v) => {
+    const ok = mine && usable.includes(v);
+    const sel = ok && v === selV && !picked;
+    if (sel) picked = true;
+    return `<button type="button" data-v="${v}" class="${sel ? "sel" : ""} ${mine && !ok ? "dead-die" : ""}" ${ok ? "" : "disabled"} aria-pressed="${sel}" aria-label="Die ${v}">${miniDie(cur.dice, v)}</button>`;
+  }).join("") : "";
+  const rrBtn = $("reroll");
+  rrBtn.hidden = !room.canReroll() || holding;
+  if (!rrBtn.hidden) $("reroll-label").textContent = `Re-roll ${s.die} · ${me.rerolls} left`;
 
   // status
   let status = $("status").dataset.text || "";
   if (room.problem) status = room.problem;
   else if (me && !room.secret) status = "This device lost its dice seal for this room, so it can't roll. The game goes on without it.";
-  else if (myTurn && s.phase === "move" && s.choice && !holding) {
+  else if (myTurn && s.choice && !holding && (s.choice.three || (s.owed === 0 && usable.length <= 1 && moves.length <= 1))) {
     const left = Math.max(0, Math.ceil((KEEP_MS - (net.serverNow() - s.turnTs)) / 1000));
-    if (s.choice.three) status = `Third 6. Re-roll, or your turn ends in ${left}`;
-    else if (s.choice.moves <= 1) status = `You rolled ${s.die}. Keeping it in ${left}…`;
-    else status = `You rolled ${s.die}. Pick a guti or re-roll.`;
-  } else if (!s.over && myTurn && s.phase === "roll" && st.can && !holding) status = "Your roll";
+    status = s.choice.three ? `Third 6. Re-roll, or your turn ends in ${left}` : `You rolled ${s.die}. Keeping it in ${left}…`;
+  } else if (myTurn && !holding && s.owed > 0 && s.pool.length) status = `You have ${s.pool.join(" + ")}. Roll again!`;
+  else if (myTurn && !holding && usable.length > 1) status = "Pick a die, then tap a guti";
+  else if (!s.over && myTurn && s.owed > 0 && st.can && !holding) status = "Your roll";
   $("status").textContent = holding ? "" : status;
 
   // seed line
@@ -610,10 +631,15 @@ function sealAndMix(s, r) {
   return ms;
 }
 
-$("roll").addEventListener("click", () => {
-  if (!room?.state) return;
-  if (room.canReroll()) { room.reroll(); return; }
-  room.roll();
+$("roll").addEventListener("click", () => { if (room?.state) room.roll(); });
+$("die-well").addEventListener("click", () => { if (room?.state && room.rollStatus().can) room.roll(); });
+$("reroll").addEventListener("click", () => { if (room?.canReroll()) { sfx.tap(); room.reroll(); } });
+$("pool").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b || b.disabled) return;
+  selV = Number(b.dataset.v);
+  sfx.tap();
+  schedule();
 });
 $("game-leave").addEventListener("click", async () => {
   if (room?.state && !room.state.over && room.mySeat >= 0) {
@@ -682,6 +708,22 @@ $("verify-all").addEventListener("click", async () => {
     btn.disabled = false;
   }
 });
+
+// ---------- updates ----------
+// Every phone in a game must run the same rules. When a newer version is
+// published, reload as soon as this phone is not in the middle of a game.
+let updateReady = false;
+async function checkUpdate() {
+  try {
+    const r = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+    const { v } = await r.json();
+    if (APP_VERSION && v && v !== APP_VERSION) updateReady = true;
+  } catch { /* offline: try later */ }
+  if (updateReady && (document.body.dataset.view !== "game" || room?.state?.over)) location.reload();
+}
+setInterval(checkUpdate, 90000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
+checkUpdate();
 
 // ---------- start ----------
 

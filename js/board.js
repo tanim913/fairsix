@@ -70,8 +70,9 @@ const BASE_SLOTS = [[2, 2], [4, 2], [2, 4], [4, 4]];
 const HOME_SPOT = [[6.55, 7.5], [7.5, 6.55], [8.45, 7.5], [7.5, 8.45]];
 
 // Which corners are used for a given number of players.
+// Two players sit on the bottom-left and top-right corners (host first).
 export function cornersFor(n) {
-  if (n === 2) return [0, 2];
+  if (n === 2) return [3, 1];
   if (n === 3) return [0, 1, 2];
   return [0, 1, 2, 3];
 }

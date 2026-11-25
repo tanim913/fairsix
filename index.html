@@ -9,13 +9,13 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#E4EEEA" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0C1A1E" media="(prefers-color-scheme: dark)">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest?v=202611251932">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611251932">
+  <script src="js/theme.js?v=202611251932"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -118,11 +118,15 @@
           <div class="tokens" id="tokens"></div>
         </div>
         <div class="tray" id="tray">
-          <div class="die-well" id="die-well" aria-live="polite">
-            <div class="beads" id="beads" aria-hidden="true"></div>
-            <div class="die" id="die" data-face="0" role="img" aria-label="Die not rolled yet"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          </div>
+          <button class="die-well" id="die-well" type="button" aria-label="Roll the die">
+            <span class="beads" id="beads" aria-hidden="true"></span>
+            <span class="die" id="die" data-face="0"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          </button>
           <button class="roll" id="roll" type="button" disabled>Roll</button>
+          <div class="pool-row" id="pool-row" hidden>
+            <div class="pool" id="pool" role="group" aria-label="Your dice"></div>
+            <button class="reroll-btn" id="reroll" type="button" hidden><svg><use href="#i-reroll"/></svg><span id="reroll-label">Re-roll</span></button>
+          </div>
           <div class="timer" id="timer" aria-hidden="true"><div></div></div>
           <p class="status" id="status" role="status" aria-live="polite"></p>
           <button class="seed-line" id="open-proof" type="button"><svg><use href="#i-seal"/></svg><span id="seed-line">Dice sealed by every player</span><span class="go">Proof</span></button>
@@ -169,17 +173,19 @@
     <div class="sheet-body rules">
       <h3>Classic</h3>
       <ul>
-        <li>Roll a <b>6</b> to bring a guti out of your base. A 6 also gives you another roll.</li>
-        <li>A third 6 in a row ends your turn without moving.</li>
-        <li>Land on a lone opponent guti to send it back to base and roll again.</li>
+        <li>Roll a <b>6</b> to bring a guti out of your base.</li>
+        <li><b>Roll first, move after:</b> a 6 means you roll again straight away, and your dice stack up (for example 6 + 6 + 3). When you have nothing left to roll, pick a die, then tap a guti, until all your dice are used.</li>
+        <li>A third 6 in a row cancels your turn, and none of those dice are used.</li>
+        <li>Land on a lone opponent guti to send it back to base. That earns another roll, which you take before using the rest of your dice.</li>
         <li>Start squares and star squares are safe. Two guti of one colour on a square protect each other, but anyone can pass or share the square.</li>
-        <li>Go round the board and up your coloured lane. You need the exact number to reach home, and reaching home gives another roll.</li>
+        <li>Go round the board and up your coloured lane. You need the exact number to reach home, and reaching home earns another roll.</li>
+        <li>With two players, you sit on opposite corners: bottom-left and top-right.</li>
         <li>The first player with all four guti home wins. Everyone else plays on for the other places.</li>
       </ul>
       <h3>Arrow</h3>
       <ul>
         <li>All the Classic rules, plus one arrow for each colour, drawn in that colour.</li>
-        <li>Your arrow starts two squares before your home lane. Land <b>exactly</b> on its tail to fly straight into your home lane, and roll again.</li>
+        <li>Your arrow starts two squares before your home lane. Land <b>exactly</b> on its tail to fly straight into your home lane and earn another roll. Only your own colour's arrow works for you.</li>
         <li>Passing over the tail does nothing. Other colours' arrows are ordinary squares for you.</li>
         <li>The small arrows at the centre corners only show the way round.</li>
         <li>First with all four guti home wins.</li>
@@ -187,8 +193,8 @@
       <h3>Re-rolls</h3>
       <ul>
         <li>The host sets how many re-rolls each player gets: off, 1, 3 or 5. Everyone gets the same number, and nobody can earn or buy more.</li>
-        <li>Right after you roll, tap <b>Re-roll</b> to throw away that roll and roll again. A re-roll is a new sealed roll, exactly as fair as any other.</li>
-        <li>With one possible move or none, your roll is kept after 3 seconds. With more, pick a guti or re-roll.</li>
+        <li>Right after you roll, tap <b>Re-roll</b> to throw away that die and roll it again. A re-roll is a new sealed roll, exactly as fair as any other.</li>
+        <li>With one possible move or none, your roll is kept after 3 seconds. Rolling again or moving a guti also keeps it.</li>
         <li>Re-rolled throws still show in the proof, marked as re-rolled.</li>
       </ul>
       <h3>Turns</h3>
@@ -201,6 +207,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=202611251932"></script>
 </body>
 </html>

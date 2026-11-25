@@ -3,8 +3,8 @@ import {
   initializeApp, initializeAuth, browserLocalPersistence, signInAnonymously, onAuthStateChanged,
   getDatabase, ref, get, set, update, remove, onValue, onChildAdded, onChildChanged,
   onDisconnect, serverTimestamp,
-} from "../vendor/firebase.js";
-import { firebaseConfig } from "./config.js";
+} from "../vendor/firebase.js?v=202611251932";
+import { firebaseConfig } from "./config.js?v=202611251932";
 
 let db = null;
 export let uid = null;

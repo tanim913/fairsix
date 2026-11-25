@@ -1,14 +1,14 @@
 // Room client: follows a room's log, checks every roll's proof, and does this
 // device's part (revealing its values, rolling, moving, timing out idle players).
-import * as net from "./net.js";
+import * as net from "./net.js?v=202611251932";
 import {
-  newGame, apply, PENDING, current, present, bySeat, legalMoves, TURN_MS, REVEAL_MS,
-} from "./rules.js";
+  newGame, apply, PENDING, current, present, bySeat, legalMoves, poolMoves, TURN_MS, REVEAL_MS, RULES_VERSION,
+} from "./rules.js?v=202611251932";
 
 export const KEEP_MS = 3000; // re-roll window when the roll has at most one move
 import {
   buildChain, ChainVerifier, dieFace, newSeed, rollerIndex, helperIndex, MAX_ROLLS,
-} from "./fair.js";
+} from "./fair.js?v=202611251932";
 
 const seedKey = (code) => `fairsix:seed:${code}:${net.uid}`;
 
@@ -82,6 +82,10 @@ export class Room {
 
   checkStart() {
     const s0 = this.entries[0];
+    if (s0 && s0.ver !== RULES_VERSION) {
+      this.problem = "This game was started on a different version of Fairsix. Reload the page on every phone and start a new room.";
+      return;
+    }
     if (!s0 || !Object.keys(this.seats).length) return;
     for (const p of s0.players || []) {
       const seat = this.seats[p.seat];
@@ -183,8 +187,8 @@ export class Room {
       net.reveal(this.code, k, me.seat, this.secret.chain[helperIndex(k)]).catch(() => this.revealed.delete(k));
     }
 
-    // Re-roll window: with at most one possible move, keep the roll after a moment.
-    if (cur.seat === me.seat && s.phase === "move" && s.choice && (s.choice.three || s.choice.moves <= 1)
+    // Re-roll window: with nothing to roll and at most one possible move, keep the roll after a moment.
+    if (cur.seat === me.seat && s.choice && (s.choice.three || (s.owed === 0 && poolMoves(s, me).length <= 1))
         && !this.busy && this.keepTried !== s.turnTs && net.serverNow() - s.turnTs >= KEEP_MS) {
       this.keepTried = s.turnTs;
       this.write({ a: "keep", s: me.seat });
@@ -244,29 +248,29 @@ export class Room {
     }
   }
 
-  movable() {
+  // Die values this player can use right now (empty when a roll is owed).
+  usableDice() {
     const s = this.state;
-    if (!s || s.over || s.phase !== "move" || current(s).seat !== this.mySeat || this.busy || s.choice?.three) return [];
-    return legalMoves(s, current(s), s.die);
+    if (!s || s.over || s.owed > 0 || current(s).seat !== this.mySeat || this.busy || s.choice?.three || this.pending) return [];
+    const p = current(s);
+    return [...new Set(s.pool)].filter((v) => legalMoves(s, p, v).length);
   }
 
-  async move(t) {
-    if (!this.movable().some((m) => m.t === t) && !this.canMoveToken(t)) return;
+  movable(v) {
+    if (!this.usableDice().includes(v)) return [];
+    return legalMoves(this.state, current(this.state), v);
+  }
+
+  async move(t, v) {
+    if (!this.movable(v).length) return;
     this.busy = true;
     this.emit();
-    try { await this.write({ a: "move", s: this.mySeat, t }); } finally { this.busy = false; this.emit(); }
-  }
-
-  canMoveToken(t) {
-    const s = this.state;
-    const p = current(s);
-    const m = this.movable().find((x) => p.tokens[x.t] === p.tokens[t]);
-    return !!m;
+    try { await this.write({ a: "move", s: this.mySeat, t, v }); } finally { this.busy = false; this.emit(); }
   }
 
   canReroll() {
     const s = this.state;
-    return !!s && !s.over && !this.pending && !this.busy && s.phase === "move" && !!s.choice
+    return !!s && !s.over && !this.pending && !this.busy && !!s.choice
       && current(s).seat === this.mySeat && current(s).rerolls > 0;
   }
 

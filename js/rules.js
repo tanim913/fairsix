@@ -8,7 +8,7 @@
 // Log entries (ts is the Firebase server time, u the writer's anonymous uid):
 //   {a:"start", mode, code, players:[{seat, uid, name, anchor}], ts, u}
 //   {a:"roll",  s, k, x, w:{seat:true|false}, ts, u}   roller reveals x[k]
-//   {a:"move",  s, t, ts, u}                            move token t
+//   {a:"move",  s, t, v, ts, u}                         move token t with die value v
 //   {a:"reroll", s, ts, u}                              discard the roll and roll again
 //   {a:"keep",  s, ts, u}                               keep the roll (when re-rolls are on)
 //   {a:"skip",  s, ts, u}                               turn timed out (any player)
@@ -17,12 +17,14 @@
 import {
   BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL,
   cornersFor, globalIndex,
-} from "./board.js";
+} from "./board.js?v=202611251932";
 
 export const TURN_MS = 30000;     // time to roll, and again to move
 export const REVEAL_MS = 4000;    // wait for slow devices before rolling without them
 export const MAX_MISSES = 3;      // missed turns in a row before a player is out
 export const PENDING = Symbol("pending");
+// Bump whenever a rule changes: a game only plays on the version it started with.
+export const RULES_VERSION = 3;
 
 export const MODES = {
   classic: { label: "Classic", tokensToWin: 4, killToEnter: false, arrows: false },
@@ -46,7 +48,7 @@ export function newGame(start) {
   return {
     mode: start.mode, code: start.code,
     players,
-    turn: 0, phase: "roll", die: null, sixes: 0, sixesBefore: 0, choice: null,
+    turn: 0, phase: "roll", die: null, sixes: 0, choice: null, pool: [], owed: 1, moves: [],
     k: 1, turnTs: start.ts,
     places: 0, over: false, winner: null,
     rolls: [],      // {k, s, die, w}
@@ -58,6 +60,7 @@ export function newGame(start) {
 const clone = (s) => ({
   ...s,
   players: s.players.map((p) => ({ ...p, tokens: p.tokens.slice() })),
+  pool: (s.pool || []).slice(),
   rolls: s.rolls,
 });
 
@@ -141,6 +144,11 @@ export function autoMove(state, p, d) {
 }
 
 // ---- turn flow ----
+//
+// A turn starts with one roll owed. Every 6 owes another roll, and so does every
+// capture, guti reaching home, or arrow. Owed rolls are always taken first; the
+// dice collect in a pool, and once nothing is owed the player spends the pool,
+// choosing which die moves which guti. A third 6 in a row cancels the turn.
 
 function checkOver(s, ts) {
   const left = s.players.filter(active);
@@ -157,12 +165,18 @@ function checkOver(s, ts) {
   }
 }
 
-function endTurn(s, ts) {
+function freshTurn(s, ts) {
   s.phase = "roll";
+  s.pool = [];
+  s.owed = 1;
   s.die = null;
   s.sixes = 0;
   s.choice = null;
   s.turnTs = ts;
+}
+
+function endTurn(s, ts) {
+  freshTurn(s, ts);
   checkOver(s, ts);
   if (s.over) { s.phase = "over"; return; }
   const n = s.players.length;
@@ -172,74 +186,101 @@ function endTurn(s, ts) {
   }
 }
 
-function again(s, ts) {
-  s.phase = "roll";
-  s.die = null;
-  s.choice = null;
-  s.turnTs = ts;
+// Every (die, guti) move the pool allows right now, one per distinct outcome.
+export function poolMoves(s, p) {
+  const out = [];
+  for (const v of new Set(s.pool || [])) for (const m of legalMoves(s, p, v)) out.push({ v, ...m });
+  return out;
 }
 
-function applyMove(s, p, m, d, ts) {
+// Moves token m.t by m.v; returns true when it finished the player.
+function moveToken(s, p, m, ts, extra = {}) {
   const from = p.tokens[m.t];
   p.tokens[m.t] = m.pos;
   const caps = capturesAt(s, p, m.pos);
   for (const c of caps) bySeat(s, c.seat).tokens[c.t] = BASE;
   p.kills += caps.length;
   const home = m.pos === HOME;
-  s.event = { type: "move", seat: p.seat, t: m.t, from, to: m.pos, via: m.via, arrow: m.arrow, caps, home, die: d, ts };
-
-  const need = MODES[s.mode].tokensToWin;
-  if (p.tokens.filter((x) => x === HOME).length >= need) {
+  const ev = { type: "move", seat: p.seat, t: m.t, from, to: m.pos, via: m.via, arrow: m.arrow, caps, home, die: m.v, ts, ...extra };
+  s.moves.push(ev);
+  s.event = ev;
+  const i = s.pool.indexOf(m.v);
+  if (i >= 0) s.pool.splice(i, 1);
+  if (p.tokens.filter((x) => x === HOME).length >= MODES[s.mode].tokensToWin) {
     p.place = ++s.places;
     if (s.winner === null) s.winner = p.seat;
-    s.event.finished = true;
-    endTurn(s, ts);
-    return;
+    ev.finished = true;
+    return true;
   }
-  if (d === 6 || caps.length || home || m.arrow) again(s, ts);
-  else endTurn(s, ts);
+  if (caps.length || home || m.arrow) s.owed += 1;
+  return false;
 }
 
-// After a roll is known. With re-rolls left the player gets a choice first;
-// otherwise the roll resolves straight away.
-function afterRoll(s, p, d, ts) {
-  s.sixesBefore = s.sixes;
-  s.sixes = d === 6 ? s.sixes + 1 : 0;
-  const three = d === 6 && s.sixes >= 3;
-  const moves = three ? [] : legalMoves(s, p, d);
-  if (p.rerolls > 0) {
-    s.phase = "move";
-    s.die = d;
-    s.turnTs = ts;
-    s.choice = { three, moves: moves.length };
-    s.event = { type: "rolled", seat: p.seat, die: d, ts, choice: true };
-    return;
+// Nothing owed: play the only possible move by itself, wait for a choice, or
+// end the turn when the pool cannot be used.
+function settle(s, p, ts) {
+  for (;;) {
+    if (s.owed > 0) { s.phase = "roll"; s.turnTs = ts; return; }
+    if (!s.pool.length) { endTurn(s, ts); return; }
+    const opts = poolMoves(s, p);
+    if (!opts.length) {
+      s.event = { type: "nomove", seat: p.seat, dice: s.pool.slice(), ts };
+      endTurn(s, ts);
+      return;
+    }
+    if (opts.length > 1) { s.phase = "move"; s.turnTs = ts; return; }
+    if (moveToken(s, p, opts[0], ts, { auto: true })) { endTurn(s, ts); return; }
   }
-  resolveRoll(s, p, d, ts, three, moves);
 }
 
-// Pass, auto-move, or wait for a move.
-function resolveRoll(s, p, d, ts, three, moves) {
+// A roll is final (kept): roll again, or move on to spending the pool.
+function proceed(s, p, ts) {
+  const three = s.choice?.three;
   s.choice = null;
   if (three) {
-    s.event = { type: "three6", seat: p.seat, die: d, ts };
+    s.event = { type: "three6", seat: p.seat, die: 6, ts };
     endTurn(s, ts);
     return;
   }
-  if (!moves.length) {
-    s.event = { type: "nomove", seat: p.seat, die: d, ts };
-    if (d === 6) again(s, ts); else endTurn(s, ts);
-    return;
-  }
-  if (moves.length === 1) {
-    applyMove(s, p, moves[0], d, ts);
-    s.event.auto = true;
-    return;
-  }
-  s.phase = "move";
+  settle(s, p, ts);
+}
+
+function afterRoll(s, p, d, ts) {
+  const prev = { owed: s.owed, sixes: s.sixes };
+  s.owed -= 1;
   s.die = d;
+  let three = false;
+  if (d === 6) {
+    s.sixes += 1;
+    if (s.sixes >= 3) three = true; else s.owed += 1;
+  } else {
+    s.sixes = 0;
+  }
+  if (!three) s.pool.push(d);
   s.turnTs = ts;
-  s.event = { type: "rolled", seat: p.seat, die: d, ts };
+  s.choice = { three, prev };
+  s.event = { type: "rolled", seat: p.seat, die: d, dice: s.pool.slice(), ts, again: !three && s.owed > 0 };
+  if (p.rerolls > 0) {
+    // Re-roll window: phase follows what comes next if the roll is kept.
+    s.phase = three || s.owed === 0 ? "move" : "roll";
+    return;
+  }
+  proceed(s, p, ts);
+}
+
+// Plays out what is left of a turn for a player who ran out of time.
+function autoplay(s, p, ts) {
+  s.choice = null;
+  s.owed = 0;
+  for (let guard = 0; guard < 12 && s.pool.length; guard++) {
+    const opts = poolMoves(s, p);
+    if (!opts.length) break;
+    const score = (m) => (capturesAt(s, p, m.pos).length ? 1000 : 0) + (m.pos === HOME ? 500 : 0) + (m.arrow ? 50 : 0) + progress(p.tokens[m.t]) + m.v / 10;
+    const m = opts.reduce((best, x) => (score(x) > score(best) ? x : best));
+    if (moveToken(s, p, m, ts, { timeout: true })) break;
+    s.owed = 0;
+  }
+  endTurn(s, ts);
 }
 
 function forfeit(s, p, ts, why) {
@@ -272,11 +313,12 @@ export function apply(s, entry, dieOf) {
   if (entry.a === "start") return s; // only valid as the first entry, handled by replay
   if (s.over) return s;
   const p = current(s);
+  const fresh = () => { const n = clone(s); n.moves = []; return n; };
 
   if (entry.a === "leave") {
     const q = bySeat(s, entry.s);
     if (!q || q.uid !== entry.u || !present(q)) return s;
-    const n = clone(s);
+    const n = fresh();
     const nq = bySeat(n, entry.s);
     forfeit(n, nq, entry.ts, "left");
     if (n.players[n.turn].seat === nq.seat) endTurn(n, entry.ts);
@@ -286,17 +328,18 @@ export function apply(s, entry, dieOf) {
     return n;
   }
 
-  if (entry.s !== p.seat) return s;
+  if (entry.s !== p.seat || entry.u !== p.uid && entry.a !== "skip") return s;
 
   if (entry.a === "roll") {
-    if (s.phase !== "roll" || entry.u !== p.uid || Number(entry.k) !== s.k) return s;
+    if (s.owed < 1 || s.choice?.three || Number(entry.k) !== s.k) return s;
     if (rollRule(s, entry)) return s;
     const d = dieOf(entry);
     if (d === null || d === undefined) return PENDING;
     if (!(d >= 1 && d <= 6)) return s; // proof failed
-    const n = clone(s);
+    const n = fresh();
     const np = current(n);
     np.misses = 0;
+    n.choice = null; // rolling again keeps the previous roll
     if (d === 6) np.sixesTotal++;
     n.k = s.k + 1;
     n.rolls = s.rolls.concat({ k: s.k, s: np.seat, die: d, w: entry.w, ts: entry.ts });
@@ -306,16 +349,17 @@ export function apply(s, entry, dieOf) {
   }
 
   if (entry.a === "reroll") {
-    if (s.phase !== "move" || !s.choice || entry.u !== p.uid || p.rerolls < 1) return s;
-    const n = clone(s);
+    if (!s.choice || p.rerolls < 1) return s;
+    const n = fresh();
     const np = current(n);
     np.rerolls -= 1;
     np.misses = 0;
     const last = n.rolls[n.rolls.length - 1];
     n.rolls = n.rolls.slice(0, -1).concat({ ...last, rerolled: true });
-    n.sixes = s.sixesBefore;
+    if (!s.choice.three) n.pool = n.pool.slice(0, -1);
+    n.owed = s.choice.prev.owed;
+    n.sixes = s.choice.prev.sixes;
     n.phase = "roll";
-    n.die = null;
     n.choice = null;
     n.turnTs = entry.ts;
     n.event = { type: "reroll", seat: np.seat, die: s.die, ts: entry.ts };
@@ -324,26 +368,28 @@ export function apply(s, entry, dieOf) {
   }
 
   if (entry.a === "keep") {
-    if (s.phase !== "move" || !s.choice || entry.u !== p.uid) return s;
-    const n = clone(s);
+    if (!s.choice) return s;
+    const n = fresh();
     const np = current(n);
     np.misses = 0;
-    if (s.choice.three || s.choice.moves <= 1) resolveRoll(n, np, s.die, entry.ts, s.choice.three, legalMoves(n, np, s.die));
-    else n.choice = null;
+    proceed(n, np, entry.ts);
     n.seq++;
     return n;
   }
 
   if (entry.a === "move") {
-    if (s.phase !== "move" || entry.u !== p.uid || s.choice?.three) return s;
+    if (s.owed > 0 || !s.pool.length || s.choice?.three) return s;
     if (!Number.isInteger(entry.t) || entry.t < 0 || entry.t > 3) return s;
-    const dest = destination(s, p, entry.t, s.die);
+    const v = entry.v === undefined ? s.pool[0] : Number(entry.v);
+    if (!s.pool.includes(v)) return s;
+    const dest = destination(s, p, entry.t, v);
     if (!dest) return s;
-    const m = { t: entry.t, ...dest };
-    const n = clone(s);
+    const n = fresh();
     const np = current(n);
     np.misses = 0;
-    applyMove(n, np, m, s.die, entry.ts);
+    n.choice = null; // moving keeps the roll
+    if (moveToken(n, np, { t: entry.t, v, ...dest }, entry.ts)) endTurn(n, entry.ts);
+    else settle(n, np, entry.ts);
     n.seq++;
     return n;
   }
@@ -351,20 +397,14 @@ export function apply(s, entry, dieOf) {
   if (entry.a === "skip") {
     const by = s.players.find((q) => q.uid === entry.u && present(q));
     if (!by || entry.ts - s.turnTs < TURN_MS) return s;
-    const n = clone(s);
+    const n = fresh();
     const np = current(n);
     np.misses += 1;
-    if (s.phase === "move" && s.choice && (s.choice.three || s.choice.moves <= 1)) {
-      resolveRoll(n, np, s.die, entry.ts, s.choice.three, legalMoves(n, np, s.die));
-      n.event = { ...n.event, timeout: true };
-    } else if (s.phase === "move") {
-      const m = autoMove(n, np, s.die);
-      if (m) applyMove(n, np, m, s.die, entry.ts); else endTurn(n, entry.ts);
-      n.event = { ...n.event, timeout: true };
-    } else {
-      n.event = { type: "timeout", seat: np.seat, ts: entry.ts };
-      endTurn(n, entry.ts);
-    }
+    const hadDice = n.pool.length > 0 && !s.choice?.three;
+    if (s.choice?.three) proceed(n, np, entry.ts);
+    else autoplay(n, np, entry.ts);
+    if (!hadDice) n.event = { type: "timeout", seat: np.seat, ts: entry.ts };
+    else n.event = { ...(n.event || {}), timeout: true };
     if (np.misses >= MAX_MISSES && present(np) && !np.place) {
       forfeit(n, np, entry.ts, "out");
       if (n.players[n.turn].seat === np.seat) endTurn(n, entry.ts);
