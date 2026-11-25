@@ -11,6 +11,33 @@
         ],
         "createdAt": "2026-11-25T19:11:41.892Z",
         "reason": "Decision-round sketch of the declined Garden Guide Map world, whose catalog spec fixes cream #F5F1E4; not shipped"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-25T19:33:57.353Z",
+        "reason": "Decision-round sketch of an unchosen direction; uses that direction's own fonts; not shipped"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-zoo.html"
+        ],
+        "createdAt": "2026-11-25T19:33:57.377Z",
+        "reason": "Decision-round sketch of an unchosen direction; uses that direction's own fonts; not shipped"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-25T19:33:57.401Z",
+        "reason": "Decision-round sketch of an unchosen direction; uses that direction's own fonts; not shipped"
       }
     ]
   }
