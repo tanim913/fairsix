@@ -3,7 +3,7 @@
 import {
   TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
-} from "./board.js?v=202611260704";
+} from "./board.js?v=202611260916";
 
 const r2 = (n) => Math.round(n * 1000) / 1000;
 

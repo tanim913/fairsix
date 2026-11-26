@@ -1,12 +1,13 @@
-import * as net from "./net.js?v=202611260704";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260704";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260704";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260704";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260704";
-import { HOME, cornersFor } from "./board.js?v=202611260704";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260704";
+import * as net from "./net.js?v=202611260916";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260916";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260916";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260916";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260916";
+import { HOME, cornersFor } from "./board.js?v=202611260916";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260916";
+import { fireworks, stopFireworks } from "./fireworks.js?v=202611260916";
 
-export const APP_VERSION = "202611260704";
+export const APP_VERSION = "202611260916";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -118,6 +119,7 @@ $("open-rules").addEventListener("click", () => $("rules").showModal());
 $("open-proof").addEventListener("click", openProof);
 $("result-proof-btn").addEventListener("click", () => { $("result").close(); openProof(); });
 $("result-close").addEventListener("click", () => $("result").close());
+$("result").addEventListener("close", stopFireworks);
 $("again").addEventListener("click", () => {
   $("result").close();
   if (room?.solo && lastSolo) startSolo(lastSolo); else leaveToHome();
@@ -805,7 +807,12 @@ function showResult() {
   const sixes = s.rolls.filter((r) => r.die === 6).length;
   $("result-proof").textContent = `${s.rolls.length} rolls, ${sixes} sixes. Every roll was sealed by ${room.solo ? "you and the computer" : "the players"} and can be rechecked.`;
   $("again").textContent = room.solo ? "Play again" : "New room";
+  $("result").querySelector(".result").classList.toggle("won", iWon);
   $("result").showModal();
+  if (iWon) {
+    const color = getComputedStyle(document.documentElement).getPropertyValue(`--c${winner.corner}`).trim();
+    fireworks({ sheet: $("result"), color, onLaunch: (pan) => sfx.launch(pan), onBurst: (pan, big) => sfx.burst(pan, big) });
+  }
 }
 
 // ---------- proof ----------

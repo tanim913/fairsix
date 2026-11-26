@@ -39,6 +39,7 @@ Provably fair dice. Every player's device commits secret random values before th
 - Spark plan: no Cloud Functions, no server code.
 - Each player picks a cosmetic die skin (Glass, Marbles, Kitty, Mochi, Starry) that others see; skins never enter a roll.
 - Subtle synthesised sound effects and Android vibration for rolls, hops, captures, home and wins, with a mute toggle. Every seat shows that player's latest roll live.
+- Winning (26 Nov 2026): when you win, the result sheet opens with a party-popper sound and about five seconds of fireworks behind it (js/fireworks.js, a canvas under the modal sheet that carries the sheet's dim), each rocket with a whistle and each burst with a boom and crackle panned to where it pops. Only the winner's own screen celebrates; reduced-motion turns the animation off but keeps the sound; mute turns the sound off.
 - Play the computer (26 Nov 2026): 1v1 on one device, no server. Same rules, same re-rolls, same hash-chain dice (the player's and the computer's chains both seal every roll, so Proof works). The computer sees only the board (js/bot.js); levels Easy (plays for fun) and Sharp (plays to win). No turn clock. The game is saved on the device and can be continued.
 - Rooms idle for 7 days are purged weekly by a GitHub Action; on request with a local script.
 

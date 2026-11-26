@@ -33,7 +33,7 @@ function ready() {
 let noiseBuf = null;
 function noise() {
   if (!noiseBuf) {
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 1.2, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
@@ -43,13 +43,13 @@ function noise() {
 }
 
 // A plucked tone: quick attack, exponential decay.
-function tone(freq, { at = 0, dur = 0.12, type = "sine", vol = 0.5, glide = 0, overtone = 0 } = {}) {
+function tone(freq, { at = 0, dur = 0.12, type = "sine", vol = 0.5, glide = 0, overtone = 0, out = master } = {}) {
   const t = ctx.currentTime + at;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  g.connect(master);
+  g.connect(out);
   const o = ctx.createOscillator();
   o.type = type;
   o.frequency.setValueAtTime(freq, t);
@@ -70,7 +70,7 @@ function tone(freq, { at = 0, dur = 0.12, type = "sine", vol = 0.5, glide = 0, o
 }
 
 // A filtered noise burst: clicks, rattles, whooshes.
-function hiss({ at = 0, dur = 0.05, freq = 2500, q = 1.2, vol = 0.4, sweep = 0, type = "bandpass" } = {}) {
+function hiss({ at = 0, dur = 0.05, freq = 2500, q = 1.2, vol = 0.4, sweep = 0, type = "bandpass", out = master } = {}) {
   const t = ctx.currentTime + at;
   const src = noise();
   const f = ctx.createBiquadFilter();
@@ -82,9 +82,18 @@ function hiss({ at = 0, dur = 0.05, freq = 2500, q = 1.2, vol = 0.4, sweep = 0, 
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.004);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f).connect(g).connect(master);
+  src.connect(f).connect(g).connect(out);
   src.start(t, Math.random() * 0.3);
   src.stop(t + dur + 0.02);
+}
+
+// Sends a sound left or right (-1 to 1), where the browser can.
+function panTo(pan) {
+  if (!ctx.createStereoPanner) return master;
+  const p = ctx.createStereoPanner();
+  p.pan.value = pan;
+  p.connect(master);
+  return p;
 }
 
 function buzz(pattern) {
@@ -167,10 +176,34 @@ export const sfx = {
     [440, 370, 311].forEach((f, i) => tone(f, { at: i * 0.1, dur: 0.16, vol: 0.2, type: "triangle" }));
   },
 
+  // A party popper as the result opens, then a rising chime.
   win() {
     buzz([30, 50, 30, 50, 90]);
     if (!ready()) return;
-    [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, { at: i * 0.09, dur: 0.5, vol: 0.18, type: "sine", overtone: 0.25 }));
+    hiss({ dur: 0.06, freq: 900, q: 0.8, vol: 0.55 });
+    tone(220, { dur: 0.08, vol: 0.35, type: "sine", glide: 0.5 });
+    hiss({ at: 0.03, dur: 0.5, freq: 6000, q: 0.6, vol: 0.12, type: "highpass" });
+    [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, { at: 0.12 + i * 0.09, dur: 0.5, vol: 0.18, type: "sine", overtone: 0.25 }));
+  },
+
+  // Fireworks: a thin whistle going up, then a boom and a crackle where it bursts.
+  launch(pan = 0) {
+    if (!ready()) return;
+    const out = panTo(pan);
+    tone(620, { dur: 0.9, vol: 0.045, type: "sine", glide: 2.6, out });
+    hiss({ dur: 0.8, freq: 2400, sweep: 2.2, q: 5, vol: 0.05, out });
+  },
+
+  burst(pan = 0, big = false) {
+    if (big) buzz(40);
+    if (!ready()) return;
+    const out = panTo(pan);
+    hiss({ dur: big ? 0.8 : 0.55, freq: 220, q: 0.7, vol: big ? 0.95 : 0.7, type: "lowpass", out });
+    tone(big ? 80 : 110, { dur: 0.4, vol: big ? 0.5 : 0.38, type: "sine", glide: 0.45, out });
+    const n = big ? 26 : 14;
+    for (let i = 0; i < n; i++) {
+      hiss({ at: 0.2 + Math.random() * (big ? 1.0 : 0.7), dur: 0.01 + Math.random() * 0.02, freq: 2500 + Math.random() * 4500, q: 2, vol: 0.1 + Math.random() * 0.12, out });
+    }
   },
 
   lose() {

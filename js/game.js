@@ -1,16 +1,16 @@
 // Room client: follows a room's log, checks every roll's proof, and does this
 // device's part (revealing its values, rolling, moving, timing out idle players).
-import * as net from "./net.js?v=202611260704";
+import * as net from "./net.js?v=202611260916";
 import {
   newGame, apply, PENDING, current, present, bySeat, legalMoves, poolMoves, TURN_MS, REVEAL_MS, RULES_VERSION, AUTO_AFTER, AUTO_SKIP_MS,
-} from "./rules.js?v=202611260704";
+} from "./rules.js?v=202611260916";
 
 export const KEEP_MS = 3000; // re-roll window when the roll has at most one move
 export const AUTO_STEP_MS = 1100; // auto-play's pause before each roll or move
-import { chooseMove } from "./bot.js?v=202611260704";
+import { chooseMove } from "./bot.js?v=202611260916";
 import {
   buildChain, ChainVerifier, dieFace, newSeed, rollerIndex, helperIndex, MAX_ROLLS,
-} from "./fair.js?v=202611260704";
+} from "./fair.js?v=202611260916";
 
 // How long others wait before skipping a turn: a player on auto-play whose phone
 // has gone quiet is skipped sooner.
