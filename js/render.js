@@ -3,7 +3,7 @@
 import {
   TRACK, LANES, START, STARS, CORNER_MARKS, BASE, HOME, LANE0, LAST_MAIN, PRE_START,
   cellOf, globalIndex,
-} from "./board.js?v=202611260641";
+} from "./board.js?v=202611260644";
 
 const r2 = (n) => Math.round(n * 1000) / 1000;
 
@@ -224,7 +224,7 @@ export class Tokens {
       el.classList.toggle("can", can && mySeatCanMove);
       el.disabled = !(can && mySeatCanMove);
       const p = state.players.find((q) => q.seat === seat);
-      el.setAttribute("aria-label", `${p?.label || "Token"} ${t + 1}${can && mySeatCanMove ? ", tap to move" : ""}`);
+      el.setAttribute("aria-label", `${p?.label || "Piece"} ${t + 1}${can && mySeatCanMove ? ", tap to move" : ""}`);
     }
 
     if (animateMove) {

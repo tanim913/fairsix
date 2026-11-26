@@ -1,12 +1,12 @@
-import * as net from "./net.js?v=202611260641";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260641";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260641";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260641";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260641";
-import { HOME, cornersFor } from "./board.js?v=202611260641";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260641";
+import * as net from "./net.js?v=202611260644";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260644";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260644";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260644";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260644";
+import { HOME, cornersFor } from "./board.js?v=202611260644";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260644";
 
-export const APP_VERSION = "202611260641";
+export const APP_VERSION = "202611260644";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -349,7 +349,7 @@ function renderLobby() {
       const minCap = Math.max(2, players.length, Math.max(0, ...players.map((p) => p.seat)) + 1);
       $("lobby-settings").innerHTML = `
         <fieldset class="seg" aria-label="Game mode"><legend class="label">Mode</legend>
-          <label><input type="radio" name="lmode" value="classic" ${m.mode === "classic" ? "checked" : ""}><span>Classic<small>All four tokens home</small></span></label>
+          <label><input type="radio" name="lmode" value="classic" ${m.mode === "classic" ? "checked" : ""}><span>Classic<small>All four pieces home</small></span></label>
           <label><input type="radio" name="lmode" value="arrow" ${m.mode === "arrow" ? "checked" : ""}><span>Arrow<small>Shortcut arrows home</small></span></label>
         </fieldset>
         <fieldset class="seg seg-n" aria-label="Players"><legend class="label">Players</legend>
@@ -498,7 +498,7 @@ function eventText(s, ev) {
     case "move": {
       if (ev.caps?.length) return `${who(ev.seat)} captured ${ev.caps.map((c) => who(c.seat)).join(" and ")}!`;
       if (ev.finished) return `${who(ev.seat)} finished!`;
-      if (ev.home) return `${who(ev.seat)} brought a token home.`;
+      if (ev.home) return `${who(ev.seat)} brought a piece home.`;
       if (ev.arrow) return `${who(ev.seat)} flew up an arrow.`;
       return `${who(ev.seat)} moved ${ev.die}${ev.timeout ? " (timed out)" : ""}.`;
     }
@@ -643,8 +643,8 @@ function renderGame() {
     else if (st.why) label = "Can't roll";
     else label = `Sealing ${st.ready}/${st.total}`;
   } else if (myTurn && s.choice?.three) label = "Third 6";
-  else if (myTurn && usable.length > 1) label = "Tap a glowing token";
-  else if (myTurn && moves.length) label = "Tap a glowing token";
+  else if (myTurn && usable.length > 1) label = "Tap a glowing piece";
+  else if (myTurn && moves.length) label = "Tap a glowing piece";
   else if (myTurn) label = "…";
   else label = `${nameOf(cur)}'s turn`;
   roll.textContent = label;
@@ -676,7 +676,7 @@ function renderGame() {
     const left = Math.max(0, Math.ceil((KEEP_MS - (room.now() - s.turnTs)) / 1000));
     status = s.choice.three ? `Third 6. Re-roll, or your turn ends in ${left}` : `You rolled ${s.die}. Keeping it in ${left}…`;
   } else if (myTurn && !holding && s.owed > 0 && s.pool.length) status = `You have ${s.pool.join(" + ")}. Roll again!`;
-  else if (myTurn && !holding && usable.length > 1) status = `You have ${s.pool.join(" + ")}. Tap a token to move it.`;
+  else if (myTurn && !holding && usable.length > 1) status = `You have ${s.pool.join(" + ")}. Tap a piece to move it.`;
   else if (!s.over && myTurn && s.owed > 0 && st.can && !holding) status = "Your roll";
   $("status").textContent = holding ? "" : status;
 

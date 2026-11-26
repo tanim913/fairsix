@@ -12,10 +12,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest?v=202611260641">
+  <link rel="manifest" href="manifest.webmanifest?v=202611260644">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=202611260641">
-  <script src="js/theme.js?v=202611260641"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611260644">
+  <script src="js/theme.js?v=202611260644"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -64,7 +64,7 @@
           <h2>New room</h2>
           <fieldset class="seg" aria-label="Game mode">
             <legend class="label">Mode</legend>
-            <label><input type="radio" name="mode" value="classic" checked><span>Classic<small>All four tokens home</small></span></label>
+            <label><input type="radio" name="mode" value="classic" checked><span>Classic<small>All four pieces home</small></span></label>
             <label><input type="radio" name="mode" value="arrow"><span>Arrow<small>Shortcut arrows home</small></span></label>
           </fieldset>
           <fieldset class="seg seg-n" aria-label="Players">
@@ -192,14 +192,14 @@
     <div class="sheet-body rules">
       <h3>Classic</h3>
       <ul>
-        <li>Roll a <b>6</b> to bring a token out of your base.</li>
-        <li><b>Roll first, move after:</b> a 6 means you roll again straight away, and your dice stack up (for example 6 + 6 + 3). When you have nothing left to roll, pick a die, then tap a token, until all your dice are used.</li>
+        <li>Roll a <b>6</b> to bring a piece out of your base.</li>
+        <li><b>Roll first, move after:</b> a 6 means you roll again straight away, and your dice stack up (for example 6 + 6 + 3). When you have nothing left to roll, pick a die, then tap a piece, until all your dice are used.</li>
         <li>A third 6 in a row cancels your turn, and none of those dice are used.</li>
-        <li>Land on a lone opponent token to send it back to base. That earns another roll, which you take before using the rest of your dice.</li>
-        <li>Start squares and star squares are safe. Two tokens of one colour on a square protect each other, but anyone can pass or share the square.</li>
+        <li>Land on a lone opponent piece to send it back to base. That earns another roll, which you take before using the rest of your dice.</li>
+        <li>Start squares and star squares are safe. Two pieces of one colour on a square protect each other, but anyone can pass or share the square.</li>
         <li>Go round the board and up your coloured lane. You need the exact number to reach home, and reaching home earns another roll.</li>
         <li>With two players, you sit on opposite corners: bottom-left and top-right.</li>
-        <li>The first player with all four tokens home wins. Everyone else plays on for the other places.</li>
+        <li>The first player with all four pieces home wins. Everyone else plays on for the other places.</li>
       </ul>
       <h3>Arrow</h3>
       <ul>
@@ -207,13 +207,13 @@
         <li>Your arrow starts two squares before your home lane. Land <b>exactly</b> on its tail to fly straight into your home lane and earn another roll. Only your own colour's arrow works for you.</li>
         <li>Passing over the tail does nothing. Other colours' arrows are ordinary squares for you.</li>
         <li>The four short arrows at the centre corners work for every colour: land exactly on one's tail to hop one square on and earn another roll.</li>
-        <li>First with all four tokens home wins.</li>
+        <li>First with all four pieces home wins.</li>
       </ul>
       <h3>Re-rolls</h3>
       <ul>
         <li>The host sets how many re-rolls each player gets: off, 1, 3 or 5. Everyone gets the same number, and nobody can earn or buy more.</li>
         <li>Right after you roll, tap <b>Re-roll</b> to throw away that die and roll it again. A re-roll is a new sealed roll, exactly as fair as any other.</li>
-        <li>With one possible move or none, your roll is kept after 3 seconds. Rolling again or moving a token also keeps it.</li>
+        <li>With one possible move or none, your roll is kept after 3 seconds. Rolling again or moving a piece also keeps it.</li>
         <li>Re-rolled throws still show in the proof, marked as re-rolled.</li>
       </ul>
       <h3>Turns</h3>
@@ -223,12 +223,12 @@
         <li>Against the computer there is no clock: take your time.</li>
       </ul>
       <h3>Playing the computer</h3>
-      <p>The computer plays by the same rules with the same number of re-rolls. Its dice are sealed exactly like a person's: it adds its own secret to your rolls and you add yours to its rolls, so it can't know or steer a roll before it lands. It decides only from what is on the board. <b>Easy</b> often picks any legal move and only re-rolls a third 6. <b>Sharp</b> weighs every move: captures, getting tokens home, arrows, staying out of reach, pairing up for safety, and saves its re-rolls for wasted rolls. Leave mid-game and you can carry on later from the home screen.</p>
+      <p>The computer plays by the same rules with the same number of re-rolls. Its dice are sealed exactly like a person's: it adds its own secret to your rolls and you add yours to its rolls, so it can't know or steer a roll before it lands. It decides only from what is on the board. <b>Easy</b> often picks any legal move and only re-rolls a third 6. <b>Sharp</b> weighs every move: captures, getting pieces home, arrows, staying out of reach, pairing up for safety, and saves its re-rolls for wasted rolls. Leave mid-game and you can carry on later from the home screen.</p>
       <h3>Why the dice are fair</h3>
       <p>Nothing about you (your history, your wins, your device, your chosen die) goes into a roll. Each roll needs a secret from you and from the other players, all sealed before the first roll. If a phone goes quiet, the roll waits 4 seconds and then goes ahead with the rest. Open <b>Proof</b> during a game to recheck every roll.</p>
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=202611260641"></script>
+  <script type="module" src="js/app.js?v=202611260644"></script>
 </body>
 </html>
