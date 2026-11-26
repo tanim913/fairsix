@@ -3,8 +3,8 @@ import {
   initializeApp, initializeAuth, browserLocalPersistence, signInAnonymously, onAuthStateChanged,
   getDatabase, ref, get, set, update, remove, onValue, onChildAdded, onChildChanged,
   onDisconnect, serverTimestamp,
-} from "../vendor/firebase.js?v=202611260653";
-import { firebaseConfig } from "./config.js?v=202611260653";
+} from "../vendor/firebase.js?v=202611260700";
+import { firebaseConfig } from "./config.js?v=202611260700";
 
 let db = null;
 export let uid = null;
@@ -22,21 +22,31 @@ export function connect() {
   return connecting;
 }
 
+// Rejects with a named error instead of waiting forever.
+export function within(p, ms, what) {
+  let t;
+  return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${what} timed out`)), ms); })]).finally(() => clearTimeout(t));
+}
+
+let app = null, auth = null;
 async function doConnect() {
-  const app = initializeApp(firebaseConfig);
-  const auth = initializeAuth(app, { persistence: browserLocalPersistence });
-  db = getDatabase(app);
-  uid = await new Promise((resolve, reject) => {
+  app ||= initializeApp(firebaseConfig);
+  auth ||= initializeAuth(app, { persistence: browserLocalPersistence });
+  db ||= getDatabase(app);
+  uid = await within(new Promise((resolve, reject) => {
     const stop = onAuthStateChanged(auth, (user) => {
       if (user) { stop(); resolve(user.uid); }
     });
     signInIfNeeded(auth).catch((e) => { stop(); reject(e); });
-  });
+  }), 15000, "sign-in");
   // The database picks up the sign-in token a moment after sign-in completes.
   // Wait until a read that needs it succeeds, so the first real write is not refused.
-  for (let i = 0; i < 20; i++) {
-    try { await get(ref(db, "rooms/000000/meta")); break; } catch { await new Promise((r) => setTimeout(r, 150 + i * 50)); }
+  let ok = false, last = null;
+  for (let i = 0; i < 12 && !ok; i++) {
+    try { await within(get(ref(db, "rooms/000000/meta")), 6000, "database"); ok = true; }
+    catch (e) { last = e; await new Promise((r) => setTimeout(r, 150 + i * 50)); }
   }
+  if (!ok) throw new Error(`database: ${last?.message || "no answer"}`);
   onValue(ref(db, ".info/serverTimeOffset"), (s) => { offset = s.val() || 0; });
   onValue(ref(db, ".info/connected"), (s) => {
     connected = s.val() === true;
@@ -77,9 +87,9 @@ export async function createRoom({ mode, cap, name, anchor, dice, rerolls = 3 })
 }
 
 export async function readRoom(code) {
-  const snap = await get(roomRef(code, "meta"));
+  const snap = await within(get(roomRef(code, "meta")), 12000, "reading the room");
   if (!snap.exists()) return null;
-  const seats = (await get(roomRef(code, "seats"))).val() || {};
+  const seats = (await within(get(roomRef(code, "seats")), 12000, "reading the seats")).val() || {};
   return { meta: snap.val(), seats };
 }
 

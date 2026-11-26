@@ -1,12 +1,12 @@
-import * as net from "./net.js?v=202611260653";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260653";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260653";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260653";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260653";
-import { HOME, cornersFor } from "./board.js?v=202611260653";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260653";
+import * as net from "./net.js?v=202611260700";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260700";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260700";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260700";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260700";
+import { HOME, cornersFor } from "./board.js?v=202611260700";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260700";
 
-export const APP_VERSION = "202611260653";
+export const APP_VERSION = "202611260700";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -276,7 +276,7 @@ async function openRoom(code) {
     room.start();
     schedule();
   } catch (err) {
-    msg("join-msg", "Could not open the room. Check your connection and try again.", true);
+    msg("join-msg", `Could not open the room (${err?.code || err?.message || err}). Check your connection and try again.`, true);
     console.error(err);
   }
 }
