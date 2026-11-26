@@ -62,6 +62,13 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         web.setBackgroundColor(ground);
+        // The page has its own light and dark themes; never let the system
+        // repaint it (MIUI's dark mode does this to light apps otherwise).
+        if (Build.VERSION.SDK_INT >= 29) {
+            getWindow().getDecorView().setForceDarkAllowed(false);
+            frame.setForceDarkAllowed(false);
+            web.setForceDarkAllowed(false);
+        }
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -72,6 +79,7 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setSupportZoom(false);
         s.setTextZoom(100);
+        if (Build.VERSION.SDK_INT >= 29 && Build.VERSION.SDK_INT < 33) noForceDark(s);
         web.addJavascriptInterface(new Bridge(), "FairsixAndroid");
         web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient() {
@@ -93,6 +101,11 @@ public class MainActivity extends Activity {
 
         if (state != null) web.restoreState(state);
         else web.loadUrl(startUrl(getIntent()));
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void noForceDark(WebSettings s) {
+        s.setForceDark(WebSettings.FORCE_DARK_OFF);
     }
 
     private static boolean isOurs(Uri u) {

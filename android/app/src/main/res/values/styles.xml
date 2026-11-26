@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- forceDarkAllowed=false: the game draws its own dark theme. Without it some
+         phones (MIUI and others) repaint the light theme dark and wash it out. -->
     <style name="Fairsix" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
         <item name="android:statusBarColor">@color/ground</item>
         <item name="android:navigationBarColor">@color/ground</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
     <color name="ground">#E4EEEA</color>
 </resources>
