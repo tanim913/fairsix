@@ -1,12 +1,12 @@
-import * as net from "./net.js?v=202611260621";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260621";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260621";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260621";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260621";
-import { HOME, cornersFor } from "./board.js?v=202611260621";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260621";
+import * as net from "./net.js?v=202611260632";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260632";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260632";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260632";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260632";
+import { HOME, cornersFor } from "./board.js?v=202611260632";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260632";
 
-export const APP_VERSION = "202611260621";
+export const APP_VERSION = "202611260632";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -197,6 +197,18 @@ async function startSolo(opts) {
   }
 }
 
+// The same die picker as in a room's lobby, for games against the computer.
+function renderSoloDice() {
+  $("solo-dice").innerHTML = `<fieldset class="dice-pick"><legend class="label">Your die <em>looks only, never the luck</em></legend>${SKINS.map((k) =>
+    `<label><input type="radio" name="sdice" value="${k.id}" ${myDice === k.id ? "checked" : ""}>${miniDie(k.id, k.id === "kitty" ? 1 : 5)}<span>${k.name}</span></label>`).join("")}</fieldset>`;
+  $("solo-dice").querySelectorAll("input").forEach((inp) => inp.addEventListener("change", () => {
+    myDice = inp.value;
+    try { localStorage.setItem("fairsix:dice", myDice); } catch { /* not saved */ }
+    sfx.tap();
+  }));
+}
+renderSoloDice();
+
 $("solo-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
@@ -323,6 +335,7 @@ function renderLobby() {
       $("dice-pick-wrap").querySelectorAll("input").forEach((inp) => inp.addEventListener("change", () => {
         myDice = inp.value;
         try { localStorage.setItem("fairsix:dice", myDice); } catch { /* not saved */ }
+        renderSoloDice();
         sfx.tap();
         net.updateSeat(room.code, me.seat, { dice: myDice }).catch(() => toast("Could not change your die. Try again."));
       }));

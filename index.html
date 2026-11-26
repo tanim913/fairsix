@@ -12,10 +12,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest?v=202611260621">
+  <link rel="manifest" href="manifest.webmanifest?v=202611260632">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=202611260621">
-  <script src="js/theme.js?v=202611260621"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611260632">
+  <script src="js/theme.js?v=202611260632"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -98,6 +98,7 @@
             <label><input type="radio" name="level" value="easy"><span>Easy<small>Plays for fun</small></span></label>
             <label><input type="radio" name="level" value="sharp" checked><span>Sharp<small>Plays to win</small></span></label>
           </fieldset>
+          <div id="solo-dice"></div>
           <button class="btn primary" id="solo-btn" type="submit">Play</button>
           <button class="btn" id="solo-resume" type="button" hidden>Continue last game</button>
         </form>
@@ -222,12 +223,12 @@
         <li>Against the computer there is no clock: take your time.</li>
       </ul>
       <h3>Playing the computer</h3>
-      <p>The computer plays by the same rules with the same number of re-rolls. Its dice are sealed exactly like a person's: it adds its own secret to your rolls and you add yours to its rolls, so it can't know or steer a roll before it lands. It decides only from what is on the board. Leave mid-game and you can carry on later from the home screen.</p>
+      <p>The computer plays by the same rules with the same number of re-rolls. Its dice are sealed exactly like a person's: it adds its own secret to your rolls and you add yours to its rolls, so it can't know or steer a roll before it lands. It decides only from what is on the board. <b>Easy</b> often picks any legal move and only re-rolls a third 6. <b>Sharp</b> weighs every move: captures, getting guti home, arrows, staying out of reach, pairing up for safety, and saves its re-rolls for wasted rolls. Leave mid-game and you can carry on later from the home screen.</p>
       <h3>Why the dice are fair</h3>
       <p>Nothing about you (your history, your wins, your device, your chosen die) goes into a roll. Each roll needs a secret from you and from the other players, all sealed before the first roll. If a phone goes quiet, the roll waits 4 seconds and then goes ahead with the rest. Open <b>Proof</b> during a game to recheck every roll.</p>
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=202611260621"></script>
+  <script type="module" src="js/app.js?v=202611260632"></script>
 </body>
 </html>
