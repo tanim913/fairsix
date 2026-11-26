@@ -1,7 +1,7 @@
 // Run: node --test tests/*.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { newGame, apply, replay, legalMoves, destination, poolMoves, PENDING, TURN_MS, REVEAL_MS, current } from "../js/rules.js";
+import { newGame, apply, replay, legalMoves, destination, poolMoves, PENDING, TURN_MS, REVEAL_MS, current, AUTO_AFTER, AUTO_SKIP_MS, MAX_MISSES } from "../js/rules.js";
 import { BASE, HOME, LANE0, globalIndex, TRACK, ARROW_TAIL, START } from "../js/board.js";
 
 // Relative position for player q of the square that is `rel` for player p.
@@ -331,4 +331,73 @@ test("arrow mode: corner arrows move any colour one square on, with another roll
   c.fresh((s) => { s.players[0].tokens = [1, BASE, BASE, BASE]; });
   c.roll(3);
   assert.equal(c.s.players[0].tokens[0], 4, "no corner arrows in Classic");
+});
+
+test("auto-play: own phone turns it on late in the turn, plays, and I'm back turns it off", () => {
+  const dice = new Map();
+  const dieOf = (e) => dice.get(Number(e.k));
+  const w = { 0: true, 1: true };
+  let s = newGame(start(2, "classic"));
+  const step = (e) => { const n = apply(s, e, dieOf); assert.notEqual(n, PENDING); return n; };
+
+  // Too early, or written by someone else: ignored.
+  assert.equal(step({ a: "auto", s: 0, ts: AUTO_AFTER - 1, u: "u0" }), s);
+  assert.equal(step({ a: "auto", s: 0, ts: AUTO_AFTER, u: "u1" }), s);
+  // A roll marked auto while auto-play is off: ignored.
+  dice.set(1, 3);
+  assert.equal(step({ a: "roll", s: 0, k: "1", x: "x", w, ts: 10, u: "u0", auto: true }), s);
+
+  s = step({ a: "auto", s: 0, ts: AUTO_AFTER, u: "u0" });
+  assert.equal(s.players[0].auto, true);
+  assert.equal(s.event.type, "auto");
+
+  // Auto-play rolls (a 3 with all guti in base: no move, turn passes) and stays on.
+  s = step({ a: "roll", s: 0, k: "1", x: "x", w, ts: AUTO_AFTER + 1000, u: "u0", auto: true });
+  assert.equal(s.players[0].auto, true);
+  assert.equal(current(s).seat, 1);
+
+  // "I'm back" works even on someone else's turn; only the player can send it.
+  assert.equal(step({ a: "back", s: 0, ts: AUTO_AFTER + 1500, u: "u1" }), s);
+  s = step({ a: "back", s: 0, ts: AUTO_AFTER + 1500, u: "u0" });
+  assert.equal(s.players[0].auto, false);
+  assert.equal(s.event.type, "back");
+  assert.equal(step({ a: "back", s: 0, ts: AUTO_AFTER + 1600, u: "u0" }), s, "back without auto-play is ignored");
+});
+
+test("auto-play: a manual roll turns it off; a quiet auto player is skipped sooner, then out", () => {
+  const dice = new Map();
+  const dieOf = (e) => dice.get(Number(e.k));
+  const w = { 0: true, 1: true };
+  let s = newGame(start(2, "classic"));
+  const step = (e) => apply(s, e, dieOf);
+
+  // Player 0 never acts: player 1 skips them after the full turn time; that turns auto-play on.
+  s = step({ a: "skip", s: 0, ts: TURN_MS, u: "u1" });
+  assert.equal(s.players[0].auto, true);
+  assert.equal(s.players[0].misses, 1);
+  // Player 1 rolls a 2 (no move), so it's player 0's turn again.
+  dice.set(1, 2);
+  s = step({ a: "roll", s: 1, k: "1", x: "x", w, ts: TURN_MS + 100, u: "u1" });
+  assert.equal(current(s).seat, 0);
+  const t0 = s.turnTs;
+  // On auto-play the skip comes after AUTO_SKIP_MS, not the full turn.
+  assert.equal(step({ a: "skip", s: 0, ts: t0 + AUTO_SKIP_MS - 1, u: "u1" }), s);
+  const skipped = step({ a: "skip", s: 0, ts: t0 + AUTO_SKIP_MS, u: "u1" });
+  assert.equal(skipped.players[0].misses, 2);
+
+  // Instead, player 0 comes back and rolls by hand: auto-play off, misses reset.
+  dice.set(2, 4);
+  const manual = step({ a: "roll", s: 0, k: "2", x: "x", w, ts: t0 + 2000, u: "u0" });
+  assert.equal(manual.players[0].auto, false);
+  assert.equal(manual.players[0].misses, 0);
+
+  // A phone that stays gone is out after MAX_MISSES skips in a row.
+  s = skipped;
+  let k = 2;
+  while (!s.players[0].out) {
+    if (current(s).seat === 1) { dice.set(k, 1); s = step({ a: "roll", s: 1, k: String(k++), x: "x", w, ts: s.turnTs + 50, u: "u1" }); continue; }
+    s = step({ a: "skip", s: 0, ts: s.turnTs + AUTO_SKIP_MS, u: "u1" });
+  }
+  assert.equal(s.players[0].misses, MAX_MISSES);
+  assert.ok(s.over);
 });

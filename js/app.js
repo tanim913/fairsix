@@ -1,12 +1,12 @@
-import * as net from "./net.js?v=202611260644";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260644";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260644";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260644";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260644";
-import { HOME, cornersFor } from "./board.js?v=202611260644";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260644";
+import * as net from "./net.js?v=202611260653";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260653";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260653";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260653";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260653";
+import { HOME, cornersFor } from "./board.js?v=202611260653";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260653";
 
-export const APP_VERSION = "202611260644";
+export const APP_VERSION = "202611260653";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -495,6 +495,8 @@ function eventText(s, ev) {
     case "timeout": return `${who(ev.seat)} ran out of time.`;
     case "out": return `${who(ev.seat)} missed three turns and is out.`;
     case "left": return `${who(ev.seat)} left the game.`;
+    case "auto": return ev.seat === room.mySeat ? "Auto-play is on. Tap I'm back to play again." : `${who(ev.seat)} is on auto-play.`;
+    case "back": return ev.seat === room.mySeat ? "You're back." : `${who(ev.seat)} is back.`;
     case "move": {
       if (ev.caps?.length) return `${who(ev.seat)} captured ${ev.caps.map((c) => who(c.seat)).join(" and ")}!`;
       if (ev.finished) return `${who(ev.seat)} finished!`;
@@ -568,7 +570,8 @@ function renderGame() {
     if (p.place) sub = ordinal(p.place);
     else if (p.left) sub = "Left";
     else if (p.out) sub = "Out";
-    else if (!s.over && p.seat === cur.seat) sub = p.seat === room.mySeat ? "Your turn" : s.owed > 0 ? "Rolling" : "Moving";
+    else if (!s.over && p.seat === cur.seat) sub = p.auto ? "Auto-play" : p.seat === room.mySeat ? "Your turn" : s.owed > 0 ? "Rolling" : "Moving";
+    else if (p.auto && present(p)) sub = "Auto-play";
     else if (!room.online[p.uid]) sub = "Away";
     else sub = p.seat === room.mySeat ? "You" : "Waiting";
     if (rr && !p.place && present(p)) sub += ` · ${p.rerolls} re-roll${p.rerolls === 1 ? "" : "s"}`;
@@ -622,7 +625,8 @@ function renderGame() {
       $("status").dataset.text = text;
       if (!first) {
         eventSound(s, s.event);
-        if (s.event.caps?.length || s.event.type === "out" || s.event.type === "three6" || s.event.finished) toast(text);
+        if (s.event.caps?.length || s.event.type === "out" || s.event.type === "three6" || s.event.finished
+            || (s.event.type === "auto" && s.event.seat === room.mySeat)) toast(text);
       }
     }
   }
@@ -632,8 +636,10 @@ function renderGame() {
   roll.className = "roll";
   const st = room.rollStatus();
   let label;
+  const away = !!me?.auto && !s.over && present(me);
   if (s.over) label = "Game over";
   else if (!me) label = "Watching";
+  else if (away) { label = "I'm back"; roll.classList.add("ready", "back", `c${me.corner}`); roll.style.setProperty("--c", `var(--c${me.corner})`); }
   else if (room.problem) label = "Can't play";
   else if (myTurn && s.owed > 0 && !s.choice?.three) {
     roll.classList.add(`c${me.corner}`);
@@ -648,7 +654,7 @@ function renderGame() {
   else if (myTurn) label = "…";
   else label = `${nameOf(cur)}'s turn`;
   roll.textContent = label;
-  roll.disabled = !st.can;
+  roll.disabled = !st.can && !away;
   const well = $("die-well");
   well.disabled = !st.can;
   well.classList.toggle("can", st.can);
@@ -671,6 +677,7 @@ function renderGame() {
   // status
   let status = $("status").dataset.text || "";
   if (room.problem) status = room.problem;
+  else if (away) status = "Auto-play is playing for you. Tap I'm back to take over.";
   else if (me && !room.secret) status = "This device lost its dice seal for this room, so it can't roll. The game goes on without it.";
   else if (myTurn && s.choice && !holding && (s.choice.three || (s.owed === 0 && usable.length <= 1 && moves.length <= 1))) {
     const left = Math.max(0, Math.ceil((KEEP_MS - (room.now() - s.turnTs)) / 1000));
@@ -742,7 +749,11 @@ function sealAndMix(s, r) {
   return ms;
 }
 
-$("roll").addEventListener("click", () => { if (room?.state) room.roll(); });
+$("roll").addEventListener("click", () => {
+  if (!room?.state) return;
+  const me = bySeat(room.state, room.mySeat);
+  if (me?.auto && !room.state.over) { sfx.tap(); room.back(); } else room.roll();
+});
 $("die-well").addEventListener("click", () => { if (room?.state && room.rollStatus().can) room.roll(); });
 $("reroll").addEventListener("click", () => { if (room?.canReroll()) { sfx.tap(); room.reroll(); } });
 $("pool").addEventListener("click", (e) => {
@@ -754,8 +765,25 @@ $("pool").addEventListener("click", (e) => {
   sfx.tap();
   schedule();
 });
+// Leaving a live game hands the win to the others, so it takes a second tap.
+let leaveArmed = 0;
+function disarmLeave() {
+  leaveArmed = 0;
+  $("game-leave").classList.remove("confirm");
+  $("game-leave-label").textContent = "Leave game";
+}
 $("game-leave").addEventListener("click", async () => {
-  if (room?.state && !room.state.over && room.mySeat >= 0) {
+  const live = room?.state && !room.state.over && room.mySeat >= 0;
+  if (live && Date.now() > leaveArmed) {
+    leaveArmed = Date.now() + 3000;
+    $("game-leave").classList.add("confirm");
+    $("game-leave-label").textContent = "Tap again to leave";
+    sfx.tap();
+    setTimeout(() => { if (Date.now() >= leaveArmed) disarmLeave(); }, 3100);
+    return;
+  }
+  disarmLeave();
+  if (live) {
     $("game-leave").disabled = true;
     await room.leave().catch(() => {});
     $("game-leave").disabled = false;

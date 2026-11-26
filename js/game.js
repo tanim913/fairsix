@@ -1,14 +1,20 @@
 // Room client: follows a room's log, checks every roll's proof, and does this
 // device's part (revealing its values, rolling, moving, timing out idle players).
-import * as net from "./net.js?v=202611260644";
+import * as net from "./net.js?v=202611260653";
 import {
-  newGame, apply, PENDING, current, present, bySeat, legalMoves, poolMoves, TURN_MS, REVEAL_MS, RULES_VERSION,
-} from "./rules.js?v=202611260644";
+  newGame, apply, PENDING, current, present, bySeat, legalMoves, poolMoves, TURN_MS, REVEAL_MS, RULES_VERSION, AUTO_AFTER, AUTO_SKIP_MS,
+} from "./rules.js?v=202611260653";
 
 export const KEEP_MS = 3000; // re-roll window when the roll has at most one move
+export const AUTO_STEP_MS = 1100; // auto-play's pause before each roll or move
+import { chooseMove } from "./bot.js?v=202611260653";
 import {
   buildChain, ChainVerifier, dieFace, newSeed, rollerIndex, helperIndex, MAX_ROLLS,
-} from "./fair.js?v=202611260644";
+} from "./fair.js?v=202611260653";
+
+// How long others wait before skipping a turn: a player on auto-play whose phone
+// has gone quiet is skipped sooner.
+const skipAfter = (p) => (p.auto ? AUTO_SKIP_MS : TURN_MS);
 
 const seedKey = (code) => `fairsix:seed:${code}:${net.uid}`;
 
@@ -51,6 +57,9 @@ export class Room {
     this.busy = false;
     this.skipTried = -1;
     this.keepTried = -1;
+    this.autoTried = -1;
+    this.autoSeq = -1;
+    this.autoAt = 0;
     this.ticker = null;
   }
 
@@ -189,21 +198,56 @@ export class Room {
     }
 
     // Re-roll window: with nothing to roll and at most one possible move, keep the roll after a moment.
-    if (cur.seat === me.seat && s.choice && (s.choice.three || (s.owed === 0 && poolMoves(s, me).length <= 1))
+    if (cur.seat === me.seat && !me.auto && s.choice && (s.choice.three || (s.owed === 0 && poolMoves(s, me).length <= 1))
         && !this.busy && this.keepTried !== s.turnTs && net.serverNow() - s.turnTs >= KEEP_MS) {
       this.keepTried = s.turnTs;
       this.write({ a: "keep", s: me.seat });
+    }
+
+    // Auto-play. Only this phone holds this player's dice secret, so only it can
+    // roll for them: when their own time is nearly up it switches auto-play on and
+    // plays their turns until they tap "I'm back" (or roll or move themselves).
+    if (cur.seat === me.seat && !this.pending && !this.busy) {
+      if (!me.auto && this.autoTried !== s.turnTs && net.serverNow() - s.turnTs >= AUTO_AFTER) {
+        this.autoTried = s.turnTs;
+        this.write({ a: "auto", s: me.seat });
+      } else if (me.auto) {
+        this.autoStep(s, me);
+      }
     }
 
     // Time out an idle player. Others wait a little longer each, by seat order,
     // so usually only one device writes the skip.
     if (cur.seat !== me.seat && !this.pending && this.skipTried !== s.turnTs) {
       const rank = this.others().filter((p) => p.seat !== cur.seat).findIndex((p) => p.seat === me.seat);
-      if (net.serverNow() - s.turnTs >= TURN_MS + 600 + 900 * Math.max(0, rank)) {
+      if (net.serverNow() - s.turnTs >= skipAfter(cur) + 600 + 900 * Math.max(0, rank)) {
         this.skipTried = s.turnTs;
         this.write({ a: "skip", s: cur.seat });
       }
     }
+  }
+
+  // One auto-play action per game state, after a short pause so others can follow.
+  autoStep(s, me) {
+    if (this.autoSeq !== s.seq) { this.autoSeq = s.seq; this.autoAt = Date.now() + AUTO_STEP_MS; }
+    if (this.autoAt === Infinity || Date.now() < this.autoAt) return;
+    if (s.owed > 0 && !s.choice?.three) {
+      if (!this.rollStatus().can) return; // still waiting for the other seals
+      this.autoAt = Infinity;
+      this.roll(true);
+      return;
+    }
+    this.autoAt = Infinity;
+    if (s.choice) { this.write({ a: "keep", s: me.seat, auto: true }); return; }
+    const m = chooseMove(s, me, "sharp");
+    if (m) this.write({ a: "move", s: me.seat, t: m.t, v: m.v, auto: true });
+  }
+
+  back() {
+    const me = this.state && bySeat(this.state, this.mySeat);
+    if (!me?.auto) return Promise.resolve(false);
+    this.autoAt = Infinity;
+    return this.write({ a: "back", s: me.seat });
   }
 
   async write(entry) {
@@ -223,12 +267,12 @@ export class Room {
   stillValid(entry) {
     const s = this.state;
     if (!s || s.over) return false;
-    if (entry.a === "leave") return true;
-    if (entry.a === "skip") return current(s).seat === entry.s && net.serverNow() - s.turnTs >= TURN_MS;
+    if (entry.a === "leave" || entry.a === "back") return true;
+    if (entry.a === "skip") return current(s).seat === entry.s && net.serverNow() - s.turnTs >= skipAfter(current(s));
     return current(s).seat === this.mySeat;
   }
 
-  async roll() {
+  async roll(auto = false) {
     const st = this.rollStatus();
     if (!st.can) return false;
     const s = this.state;
@@ -239,7 +283,7 @@ export class Room {
     this.busy = true;
     this.emit();
     try {
-      await net.append(this.code, this.entries.length, { a: "roll", s: this.mySeat, k: String(k), x: this.secret.chain[rollerIndex(k)], w });
+      await net.append(this.code, this.entries.length, { a: "roll", s: this.mySeat, k: String(k), x: this.secret.chain[rollerIndex(k)], w, ...(auto ? { auto: true } : {}) });
       return true;
     } catch {
       return false; // a reveal or another entry landed first; the button comes back

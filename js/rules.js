@@ -13,18 +13,24 @@
 //   {a:"keep",  s, ts, u}                               keep the roll (when re-rolls are on)
 //   {a:"skip",  s, ts, u}                               turn timed out (any player)
 //   {a:"leave", s, ts, u}                               player quits
+//   {a:"auto",  s, ts, u}                               own time ran out: auto-play on
+//   {a:"back",  s, ts, u}                               player is back: auto-play off
+// roll, move and keep may carry auto:true when auto-play wrote them; a player's
+// own move without it turns auto-play off.
 
 import {
   BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL, CORNER_TAILS,
   cornersFor, globalIndex,
-} from "./board.js?v=202611260644";
+} from "./board.js?v=202611260653";
 
 export const TURN_MS = 30000;     // time to roll, and again to move
 export const REVEAL_MS = 4000;    // wait for slow devices before rolling without them
 export const MAX_MISSES = 3;      // missed turns in a row before a player is out
+export const AUTO_AFTER = TURN_MS - 2000; // a player's own phone switches on auto-play
+export const AUTO_SKIP_MS = 10000; // an auto-play turn whose phone is gone is skipped sooner
 export const PENDING = Symbol("pending");
 // Bump whenever a rule changes: a game only plays on the version it started with.
-export const RULES_VERSION = 4;
+export const RULES_VERSION = 5;
 
 export const MODES = {
   classic: { label: "Classic", tokensToWin: 4, killToEnter: false, arrows: false },
@@ -43,7 +49,7 @@ export function newGame(start) {
       tokens: [BASE, BASE, BASE, BASE],
       kills: 0, misses: 0, sixesTotal: 0,
       rerolls: Math.max(0, Math.min(5, Number(start.rerolls) || 0)),
-      out: false, left: false, place: 0,
+      out: false, left: false, place: 0, auto: false,
     }));
   return {
     mode: start.mode, code: start.code,
@@ -330,7 +336,32 @@ export function apply(s, entry, dieOf) {
     return n;
   }
 
+  if (entry.a === "back") {
+    const q = bySeat(s, entry.s);
+    if (!q || q.uid !== entry.u || !present(q) || !q.auto) return s;
+    const n = fresh();
+    const nq = bySeat(n, entry.s);
+    nq.auto = false;
+    nq.misses = 0;
+    n.event = { type: "back", seat: nq.seat, ts: entry.ts };
+    n.seq++;
+    return n;
+  }
+
   if (entry.s !== p.seat || entry.u !== p.uid && entry.a !== "skip") return s;
+
+  // Auto-play: it may only act for a player who has it on, and only that
+  // player's own phone can switch it on, once their time is nearly up.
+  if (entry.auto && !p.auto) return s;
+  if (entry.a === "auto") {
+    if (p.auto || entry.ts - s.turnTs < AUTO_AFTER) return s;
+    const n = fresh();
+    current(n).auto = true;
+    n.event = { type: "auto", seat: p.seat, ts: entry.ts };
+    n.seq++;
+    return n;
+  }
+  const manual = !entry.auto && entry.a !== "skip";
 
   if (entry.a === "roll") {
     if (s.owed < 1 || s.choice?.three || Number(entry.k) !== s.k) return s;
@@ -341,6 +372,7 @@ export function apply(s, entry, dieOf) {
     const n = fresh();
     const np = current(n);
     np.misses = 0;
+    if (manual) np.auto = false;
     n.choice = null; // rolling again keeps the previous roll
     if (d === 6) np.sixesTotal++;
     n.k = s.k + 1;
@@ -356,6 +388,7 @@ export function apply(s, entry, dieOf) {
     const np = current(n);
     np.rerolls -= 1;
     np.misses = 0;
+    if (manual) np.auto = false;
     const last = n.rolls[n.rolls.length - 1];
     n.rolls = n.rolls.slice(0, -1).concat({ ...last, rerolled: true });
     if (!s.choice.three) n.pool = n.pool.slice(0, -1);
@@ -374,6 +407,7 @@ export function apply(s, entry, dieOf) {
     const n = fresh();
     const np = current(n);
     np.misses = 0;
+    if (manual) np.auto = false;
     proceed(n, np, entry.ts);
     n.seq++;
     return n;
@@ -389,6 +423,7 @@ export function apply(s, entry, dieOf) {
     const n = fresh();
     const np = current(n);
     np.misses = 0;
+    if (manual) np.auto = false;
     n.choice = null; // moving keeps the roll
     if (moveToken(n, np, { t: entry.t, v, ...dest }, entry.ts)) endTurn(n, entry.ts);
     else settle(n, np, entry.ts);
@@ -398,10 +433,11 @@ export function apply(s, entry, dieOf) {
 
   if (entry.a === "skip") {
     const by = s.players.find((q) => q.uid === entry.u && present(q));
-    if (!by || entry.ts - s.turnTs < TURN_MS) return s;
+    if (!by || entry.ts - s.turnTs < (p.auto ? AUTO_SKIP_MS : TURN_MS)) return s;
     const n = fresh();
     const np = current(n);
     np.misses += 1;
+    np.auto = true; // its turns play themselves from now on, if its phone is still there
     const hadDice = n.pool.length > 0 && !s.choice?.three;
     if (s.choice?.three) proceed(n, np, entry.ts);
     else autoplay(n, np, entry.ts);

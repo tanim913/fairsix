@@ -12,10 +12,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest?v=202611260644">
+  <link rel="manifest" href="manifest.webmanifest?v=202611260653">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=202611260644">
-  <script src="js/theme.js?v=202611260644"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611260653">
+  <script src="js/theme.js?v=202611260653"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -153,8 +153,8 @@
         <section class="log-panel" aria-label="Recent rolls">
           <h2 class="label">Rolls</h2>
           <ol class="roll-log" id="roll-log"></ol>
-          <button class="btn ghost small" id="game-leave" type="button"><svg><use href="#i-exit"/></svg><span>Leave game</span></button>
         </section>
+        <button class="btn ghost small game-leave" id="game-leave" type="button"><svg><use href="#i-exit"/></svg><span id="game-leave-label">Leave game</span></button>
       </div>
     </section>
   </main>
@@ -218,8 +218,8 @@
       </ul>
       <h3>Turns</h3>
       <ul>
-        <li>You have 30 seconds to roll and 30 to move. If time runs out, your turn is skipped, or your best move is played for you.</li>
-        <li>Miss three turns in a row and you are out.</li>
+        <li>You have 30 seconds to roll and 30 to move. If time runs out, <b>auto-play</b> takes over on your phone: it rolls with your own sealed dice and plays sensible moves until you tap <b>I'm back</b> (or roll or move yourself).</li>
+        <li>If your phone itself goes quiet (closed or offline), your turns are skipped. Three skipped turns in a row and you are out.</li>
         <li>Against the computer there is no clock: take your time.</li>
       </ul>
       <h3>Playing the computer</h3>
@@ -229,6 +229,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=202611260644"></script>
+  <script type="module" src="js/app.js?v=202611260653"></script>
 </body>
 </html>

@@ -483,6 +483,8 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 .seed-line .go { margin-left: auto; font-weight: 800; color: var(--ink); }
 
 .log-panel { display: none; }
+.game-leave { justify-self: center; }
+.game-leave.confirm { color: var(--c0); border-color: var(--c0); }
 .roll-log { list-style: none; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow: auto; }
 .roll-log li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .roll-log .guti-demo { width: 18px; height: 18px; }
@@ -494,12 +496,13 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
   .game {
     --board-size: min(calc(100dvh - 100px), calc(100vw - 440px), 760px);
     grid-template-columns: var(--board-size) 340px;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     align-items: start;
     gap: 14px 28px;
     padding-top: 8px;
   }
-  .board-wrap { grid-column: 1; grid-row: 1 / span 3; }
+  .board-wrap { grid-column: 1; grid-row: 1 / span 4; }
+  .game-leave { grid-column: 2; grid-row: 4; justify-self: start; }
   .seats { grid-column: 2; grid-row: 1; grid-template-columns: 1fr; }
   .tray { grid-column: 2; grid-row: 2; }
   .log-panel { grid-column: 2; grid-row: 3; display: grid; gap: 10px; align-content: start; }
