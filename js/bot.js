@@ -1,8 +1,8 @@
 // The robot opponent's choices. Pure functions over the game state: the robot
 // sees the board and the dice already rolled, exactly like a person would. It
 // never sees a future roll (those are sealed), and it gets no help from the dice.
-import { BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, START, globalIndex } from "./board.js?v=202611260632";
-import { poolMoves, capturesAt, present } from "./rules.js?v=202611260632";
+import { BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, START, globalIndex } from "./board.js?v=202611260641";
+import { poolMoves, capturesAt, present } from "./rules.js?v=202611260641";
 
 export const LEVELS = {
   easy: { label: "Easy", note: "Plays for fun" },
