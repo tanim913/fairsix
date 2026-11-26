@@ -699,10 +699,11 @@ main { padding: 8px max(16px, env(safe-area-inset-left)) calc(24px + env(safe-ar
 
 /* ---------- home on wide screens: intro and join left, create right ---------- */
 @media (min-width: 900px) {
-  .home { grid-template-columns: 1.1fr 1fr; grid-template-areas: "intro create" "join create"; }
+  .home { grid-template-columns: 1.1fr 1fr; grid-template-areas: "intro create" "join solo"; }
   .home-intro { grid-area: intro; grid-row: auto; padding-top: 24px; }
   #create-form { grid-area: create; }
   #join-form { grid-area: join; align-self: start; }
+  #solo-form { grid-area: solo; align-self: start; }
   .home-intro h1 { font-size: clamp(48px, 5vw, 72px); }
 }
 

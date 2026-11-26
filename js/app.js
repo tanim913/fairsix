@@ -1,11 +1,12 @@
-import * as net from "./net.js?v=202611252221";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611252221";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611252221";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611252221";
-import { HOME, cornersFor } from "./board.js?v=202611252221";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611252221";
+import * as net from "./net.js?v=202611260621";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260621";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260621";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260621";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260621";
+import { HOME, cornersFor } from "./board.js?v=202611260621";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260621";
 
-export const APP_VERSION = "202611252221";
+export const APP_VERSION = "202611260621";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
@@ -117,7 +118,10 @@ $("open-rules").addEventListener("click", () => $("rules").showModal());
 $("open-proof").addEventListener("click", openProof);
 $("result-proof-btn").addEventListener("click", () => { $("result").close(); openProof(); });
 $("result-close").addEventListener("click", () => $("result").close());
-$("again").addEventListener("click", () => { $("result").close(); leaveToHome(); });
+$("again").addEventListener("click", () => {
+  $("result").close();
+  if (room?.solo && lastSolo) startSolo(lastSolo); else leaveToHome();
+});
 $("brand").addEventListener("click", (e) => { e.preventDefault(); leaveToHome(); });
 
 // ---------- home ----------
@@ -161,8 +165,55 @@ $("join-form").addEventListener("submit", (e) => {
 
 function route() {
   const code = location.hash.replace(/\D/g, "");
-  if (code.length === 6) openRoom(code);
-  else { closeRoom(); setView("home"); $("bar-mid").innerHTML = ""; }
+  if (location.hash === "#computer") openSolo();
+  else if (code.length === 6) openRoom(code);
+  else { closeRoom(); setView("home"); $("bar-mid").innerHTML = ""; showResume(); }
+}
+
+// ---------- play the computer ----------
+
+const SOLO_DICE = ["kitty", "mochi", "starry", "marbles", "glass"];
+let lastSolo = null;
+
+function showResume() {
+  const g = savedGame();
+  $("solo-resume").hidden = !g || g.entries.length < 2;
+}
+
+async function startSolo(opts) {
+  const btn = $("solo-btn");
+  btn.disabled = true;
+  btn.textContent = "Sealing the dice…";
+  try {
+    lastSolo = opts;
+    await newSoloGame({ ...opts, dice: myDice, botDice: SOLO_DICE.find((d) => d !== myDice) });
+    if (location.hash === "#computer") { closeRoom(); route(); } else location.hash = "computer";
+  } catch (err) {
+    toast("Could not start the game.");
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Play";
+  }
+}
+
+$("solo-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  clearSaved();
+  startSolo({ mode: f.get("smode"), level: f.get("level"), rerolls: 3 });
+});
+$("solo-resume").addEventListener("click", () => { location.hash = "computer"; });
+
+async function openSolo() {
+  if (room?.solo) return;
+  closeRoom();
+  const g = savedGame();
+  if (!g) { history.replaceState(null, "", location.pathname); setView("home"); showResume(); return; }
+  lastSolo = { mode: g.entries[0].mode, level: g.level, rerolls: g.entries[0].rerolls };
+  room = new LocalRoom(g, schedule);
+  await room.start();
+  schedule();
 }
 
 function leaveToHome() {
@@ -457,7 +508,7 @@ function eventSound(s, ev) {
 }
 
 function animateBar(el, turnTs, key) {
-  const remaining = Math.max(0, TURN_MS - (net.serverNow() - turnTs));
+  const remaining = Math.max(0, TURN_MS - (room.now() - turnTs));
   el.getAnimations().forEach((a) => a.cancel());
   el.animate([{ transform: `scaleX(${remaining / TURN_MS})` }, { transform: "scaleX(0)" }], { duration: remaining, fill: "forwards" });
   el.dataset.key = key;
@@ -479,7 +530,7 @@ function renderGame() {
   for (const p of s.players) p.label = nameOf(p);
   const now = Date.now();
 
-  $("bar-mid").innerHTML = `<span class="room-pill">${fmtCode(room.code)} <small>${MODES[s.mode].label}</small></span>`;
+  $("bar-mid").innerHTML = `<span class="room-pill">${room.solo ? "Computer" : fmtCode(room.code)} <small>${MODES[s.mode].label}</small></span>`;
 
   // A new roll: seal-and-mix, then let the board catch up.
   const last = s.rolls[s.rolls.length - 1];
@@ -512,13 +563,14 @@ function renderGame() {
     const turn = !s.over && p.seat === cur.seat;
     const lr = lastRollOf(s, p.seat);
     const face = rollingSeat === p.seat ? 0 : lr ? lr.die : 0;
-    return `<li class="seat c${p.corner} ${turn ? "turn" : ""} ${p.seat === room.mySeat ? "mine" : ""} ${present(p) || p.place ? "" : "gone"}">${marble(p.corner)}<span class="seat-text"><b>${esc(nameOf(p))}</b><small>${sub}</small></span><span class="homes" aria-label="${homes} home">${dots}${p.seat === room.mySeat ? '<em class="you">you</em>' : ""}</span>${miniDie(p.dice, face, rollingSeat === p.seat ? "tumble" : "")}${turn ? '<span class="tbar"></span>' : ""}</li>`;
+    return `<li class="seat c${p.corner} ${turn ? "turn" : ""} ${p.seat === room.mySeat ? "mine" : ""} ${present(p) || p.place ? "" : "gone"}">${marble(p.corner)}<span class="seat-text"><b>${esc(nameOf(p))}</b><small>${sub}</small></span><span class="homes" aria-label="${homes} home">${dots}${p.seat === room.mySeat ? '<em class="you">you</em>' : ""}</span>${miniDie(p.dice, face, rollingSeat === p.seat ? "tumble" : "")}${turn && !room.solo ? '<span class="tbar"></span>' : ""}</li>`;
   }).join("");
 
   // turn timer
   const turnKey = `${s.turnTs}|${cur.seat}|${s.phase}`;
   const tb = document.querySelector("#seats .tbar");
-  if (!s.over) {
+  $("timer").hidden = !!room.solo;
+  if (!s.over && !room.solo) {
     if (tb) animateBar(tb, s.turnTs, turnKey);
     const timer = $("timer").firstElementChild;
     $("timer").style.setProperty("--c", `var(--c${cur.corner})`);
@@ -608,7 +660,7 @@ function renderGame() {
   if (room.problem) status = room.problem;
   else if (me && !room.secret) status = "This device lost its dice seal for this room, so it can't roll. The game goes on without it.";
   else if (myTurn && s.choice && !holding && (s.choice.three || (s.owed === 0 && usable.length <= 1 && moves.length <= 1))) {
-    const left = Math.max(0, Math.ceil((KEEP_MS - (net.serverNow() - s.turnTs)) / 1000));
+    const left = Math.max(0, Math.ceil((KEEP_MS - (room.now() - s.turnTs)) / 1000));
     status = s.choice.three ? `Third 6. Re-roll, or your turn ends in ${left}` : `You rolled ${s.die}. Keeping it in ${left}…`;
   } else if (myTurn && !holding && s.owed > 0 && s.pool.length) status = `You have ${s.pool.join(" + ")}. Roll again!`;
   else if (myTurn && !holding && usable.length > 1) status = `You have ${s.pool.join(" + ")}. Tap a guti to move it.`;
@@ -617,7 +669,8 @@ function renderGame() {
 
   // seed line
   const others = room.others ? room.others().length : 0;
-  if (!s.over && myTurn && s.phase === "roll") $("seed-line").textContent = `Roll ${s.k} · ${st.ready ?? 0} of ${st.total ?? others} other seals in`;
+  if (room.solo) $("seed-line").textContent = last ? `Roll ${last.k} sealed by you and the computer` : "Dice sealed by you and the computer";
+  else if (!s.over && myTurn && s.phase === "roll") $("seed-line").textContent = `Roll ${s.k} · ${st.ready ?? 0} of ${st.total ?? others} other seals in`;
   else if (last) $("seed-line").textContent = `Roll ${last.k} sealed by ${Object.values(last.w).filter((v) => v === true).length} players`;
   else $("seed-line").textContent = "Dice sealed by every player";
 
@@ -709,7 +762,8 @@ function showResult() {
   const ranked = s.players.slice().sort((a, b) => (a.place || 9) - (b.place || 9));
   $("places").innerHTML = ranked.map((p) => `<li><span class="pos">${p.place || "–"}</span>${marble(p.corner, "", false)}<span>${esc(nameOf(p))}</span><span class="fine end">${p.left ? "left" : p.out ? "out" : ""}</span></li>`).join("");
   const sixes = s.rolls.filter((r) => r.die === 6).length;
-  $("result-proof").textContent = `${s.rolls.length} rolls, ${sixes} sixes. Every roll was sealed by the players and can be rechecked.`;
+  $("result-proof").textContent = `${s.rolls.length} rolls, ${sixes} sixes. Every roll was sealed by ${room.solo ? "you and the computer" : "the players"} and can be rechecked.`;
+  $("again").textContent = room.solo ? "Play again" : "New room";
   $("result").showModal();
 }
 

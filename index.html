@@ -12,10 +12,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.asia-southeast1.firebasedatabase.app wss://*.asia-southeast1.firebasedatabase.app; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest?v=202611252221">
+  <link rel="manifest" href="manifest.webmanifest?v=202611260621">
   <link rel="preload" href="fonts/gabarito-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=202611252221">
-  <script src="js/theme.js?v=202611252221"></script>
+  <link rel="stylesheet" href="css/style.css?v=202611260621">
+  <script src="js/theme.js?v=202611260621"></script>
 </head>
 <body data-view="home">
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -83,6 +83,23 @@
           <label class="field"><span class="label">Nickname <em>optional</em></span><input id="join-name" maxlength="16" placeholder="Your colour's name" enterkeyhint="go"></label>
           <button class="btn" id="join-btn" type="submit">Join</button>
           <p class="msg" id="join-msg" role="status" aria-live="polite"></p>
+        </form>
+
+        <form class="panel" id="solo-form" autocomplete="off">
+          <h2>Play the computer</h2>
+          <p class="fine">One on one. The computer rolls the same sealed dice you do and only sees the board.</p>
+          <fieldset class="seg" aria-label="Game mode against the computer">
+            <legend class="label">Mode</legend>
+            <label><input type="radio" name="smode" value="classic" checked><span>Classic</span></label>
+            <label><input type="radio" name="smode" value="arrow"><span>Arrow</span></label>
+          </fieldset>
+          <fieldset class="seg" aria-label="Computer level">
+            <legend class="label">Computer</legend>
+            <label><input type="radio" name="level" value="easy"><span>Easy<small>Plays for fun</small></span></label>
+            <label><input type="radio" name="level" value="sharp" checked><span>Sharp<small>Plays to win</small></span></label>
+          </fieldset>
+          <button class="btn primary" id="solo-btn" type="submit">Play</button>
+          <button class="btn" id="solo-resume" type="button" hidden>Continue last game</button>
         </form>
       </div>
     </section>
@@ -202,12 +219,15 @@
       <ul>
         <li>You have 30 seconds to roll and 30 to move. If time runs out, your turn is skipped, or your best move is played for you.</li>
         <li>Miss three turns in a row and you are out.</li>
+        <li>Against the computer there is no clock: take your time.</li>
       </ul>
+      <h3>Playing the computer</h3>
+      <p>The computer plays by the same rules with the same number of re-rolls. Its dice are sealed exactly like a person's: it adds its own secret to your rolls and you add yours to its rolls, so it can't know or steer a roll before it lands. It decides only from what is on the board. Leave mid-game and you can carry on later from the home screen.</p>
       <h3>Why the dice are fair</h3>
       <p>Nothing about you (your history, your wins, your device, your chosen die) goes into a roll. Each roll needs a secret from you and from the other players, all sealed before the first roll. If a phone goes quiet, the roll waits 4 seconds and then goes ahead with the rest. Open <b>Proof</b> during a game to recheck every roll.</p>
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=202611252221"></script>
+  <script type="module" src="js/app.js?v=202611260621"></script>
 </body>
 </html>
