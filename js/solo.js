@@ -2,11 +2,11 @@
 // same sealed dice as an online room: you and the robot each seal a hash chain,
 // both reveal into every roll, and every roll can be rechecked in Proof. The robot
 // decides from the board alone (bot.js); it never reads an unrevealed value.
-import { Room, KEEP_MS } from "./game.js?v=202611260700";
-import { buildChain, newSeed, rollerIndex, helperIndex } from "./fair.js?v=202611260700";
-import { current, poolMoves, RULES_VERSION } from "./rules.js?v=202611260700";
-import { chooseMove, wantsReroll } from "./bot.js?v=202611260700";
-import { moveChain } from "./render.js?v=202611260700";
+import { Room, KEEP_MS } from "./game.js?v=202611260704";
+import { buildChain, newSeed, rollerIndex, helperIndex } from "./fair.js?v=202611260704";
+import { current, poolMoves, RULES_VERSION } from "./rules.js?v=202611260704";
+import { chooseMove, wantsReroll } from "./bot.js?v=202611260704";
+import { moveChain } from "./render.js?v=202611260704";
 
 const KEY = "fairsix:robot";
 export const ME = "you";

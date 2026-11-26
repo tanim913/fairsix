@@ -21,7 +21,7 @@
 import {
   BASE, HOME, LANE0, LAST_MAIN, PRE_START, SAFE, ARROW_TAIL, CORNER_TAILS,
   cornersFor, globalIndex,
-} from "./board.js?v=202611260700";
+} from "./board.js?v=202611260704";
 
 export const TURN_MS = 30000;     // time to roll, and again to move
 export const REVEAL_MS = 4000;    // wait for slow devices before rolling without them

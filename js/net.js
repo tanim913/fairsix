@@ -2,9 +2,9 @@
 import {
   initializeApp, initializeAuth, browserLocalPersistence, signInAnonymously, onAuthStateChanged,
   getDatabase, ref, get, set, update, remove, onValue, onChildAdded, onChildChanged,
-  onDisconnect, serverTimestamp,
-} from "../vendor/firebase.js?v=202611260700";
-import { firebaseConfig } from "./config.js?v=202611260700";
+  onDisconnect, serverTimestamp, forceWebSockets,
+} from "../vendor/firebase.js?v=202611260704";
+import { firebaseConfig } from "./config.js?v=202611260704";
 
 let db = null;
 export let uid = null;
@@ -32,7 +32,15 @@ let app = null, auth = null;
 async function doConnect() {
   app ||= initializeApp(firebaseConfig);
   auth ||= initializeAuth(app, { persistence: browserLocalPersistence });
-  db ||= getDatabase(app);
+  if (!db) {
+    // WebSockets only. After one dropped socket (a phone backgrounding the app or
+    // switching networks) the SDK otherwise remembers a "failure" and starts with
+    // long polling, which loads scripts from the database host; this page's CSP
+    // blocks those, so the database would never answer again on that device.
+    try { localStorage.removeItem("firebase:previous_websocket_failure"); } catch { /* storage blocked */ }
+    forceWebSockets();
+    db = getDatabase(app);
+  }
   uid = await within(new Promise((resolve, reject) => {
     const stop = onAuthStateChanged(auth, (user) => {
       if (user) { stop(); resolve(user.uid); }

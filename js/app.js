@@ -1,12 +1,12 @@
-import * as net from "./net.js?v=202611260700";
-import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260700";
-import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260700";
-import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260700";
-import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260700";
-import { HOME, cornersFor } from "./board.js?v=202611260700";
-import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260700";
+import * as net from "./net.js?v=202611260704";
+import { Room, makeSeed, saveSeed, loadSeed, KEEP_MS } from "./game.js?v=202611260704";
+import { LocalRoom, newSoloGame, savedGame, clearSaved } from "./solo.js?v=202611260704";
+import { drawBoard, showLive, Tokens, tokenCell, moveChain } from "./render.js?v=202611260704";
+import { current, present, bySeat, MODES, TURN_MS, RULES_VERSION, legalMoves } from "./rules.js?v=202611260704";
+import { HOME, cornersFor } from "./board.js?v=202611260704";
+import { sfx, unlock, isMuted, setMuted } from "./sfx.js?v=202611260704";
 
-export const APP_VERSION = "202611260700";
+export const APP_VERSION = "202611260704";
 const COLOR = ["Ruby", "Green", "Amber", "Cobalt"];
 const SKINS = [
   { id: "glass", name: "Glass" },
